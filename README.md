@@ -20,9 +20,17 @@ pnpm preview
 
 ## Spielen
 
-Füttern erhöht die Sättigung. Spielen verbessert die Freude und verbraucht Energie. Streicheln verbessert die Freude. Schlafen stellt Energie wieder her, während aktive Pflege pausiert. Wecken beendet den Schlaf. Fünf Pflegeaktionen erhöhen das Freundschaftslevel.
+Füttern erhöht die Sättigung. Spielen verbessert die Freude und verbraucht Energie. Streicheln verbessert die Freude. Schlafen stellt Energie wieder her, während aktive Pflege pausiert. Wecken beendet den Schlaf. Freundschaftspunkte schalten fünf Level mit sichtbaren Belohnungen frei.
 
-Beim Füttern öffnet sich eine Auswahl mit drehbaren Three.js-Modellen. Franzbrötchen gibt 20 Sättigung, Döner gibt 30 Sättigung und 5 Freude, Augustiner-Bier gibt 5 Sättigung und 10 Freude und verbraucht 5 Energie. Erst „Pinchy geben“ speichert die Pflegeaktion und lässt Pinchy das gewählte Modell halten. Abbrechen verändert den Spielstand nicht. Auswahl und Modelle funktionieren offline und auf Deutsch oder Englisch.
+Beim Füttern öffnet sich eine Auswahl mit drehbaren Three.js-Modellen. Franzbrötchen gibt 20 Sättigung, Döner gibt 30 Sättigung und 5 Freude, Augustiner-Bier gibt 5 Sättigung und 10 Freude und verbraucht 5 Energie. Erst „Pinchy geben“ speichert die Pflegeaktion und lässt Pinchy das gewählte Modell halten. Abbrechen verändert den Spielstand nicht. Auswahl und Modelle funktionieren offline und auf Deutsch oder Englisch. Ab Level 3 gibt es zusätzlich eine Erdbeere mit 10 Sättigung und 12 Freude.
+
+Die Freundschaft beginnt bei Level 1. Mit 10 Punkten erscheint eine Schleife, mit 30 Punkten die Erdbeere, mit 60 Punkten ein Spielball und mit 100 Punkten eine Blume im Zuhause. Schleife und Dekoration erscheinen automatisch. Beim Spielen hüpft der freigeschaltete Ball mit. Alle bisherigen Speisen und Farben bleiben verfügbar.
+
+Sinnvolles Füttern bei weniger als 85 Sättigung und Spielen bei weniger als 90 Freude bringen jeweils 4 Punkte, höchstens zweimal täglich pro Aktion. Das erste Streicheln bringt weitere 4 Punkte. Schlafen und Wecken bringen keine Punkte. Der täglich wechselnde Wunsch gibt beim ersten passenden, erlaubten Pflegevorgang bis zu 6 Extrapunkte, auch bei vollen Bedürfnissen. Die Freundschaft endet vorerst bei 100 Punkten. Tageswünsche wechseln um 00:00 UTC. Pausen kosten weder Punkte noch Belohnungen.
+
+Die Übersicht im Display zeigt die nächste Belohnung und den Tageswunsch. Ein Klick öffnet alle fünf Level mit ihren Voraussetzungen. Alte Spielstände behalten Namen, Bedürfnisse und Pflegezähler. Bisherige Level entsprechen den neuen Stufen bis Level 5, einschließlich anteiligem Fortschritt innerhalb einer Stufe. Die Umrechnung wird mit der nächsten gespeicherten Pflege oder Namensänderung dauerhaft gespeichert. Beschädigte Daten bleiben unverändert.
+
+Das [Wachstums- und Progressionskonzept](docs/progression-concept.md) beschreibt die separate spätere Entwicklung vom Ei zum erwachsenen Hamcrab. Wachstum, Strandausflüge und Sammelalbum sind noch nicht implementiert.
 
 Die Bedürfnisse verändern sich mit vergangener Zeit. Pro Berechnung zählen höchstens 24 Stunden. Pinchy stirbt nicht bei längerer Abwesenheit. IndexedDB speichert den Spielstand auf diesem Browserprofil. Das Löschen der Browserdaten löscht auch den Spielstand.
 

@@ -16,7 +16,7 @@ Then(
     await expect(
       page.getByRole('img', {
         name: `${name}, a hamster in a crab costume. Drag or use the arrow keys to rotate.`,
-        exact: true,
+        exact: false,
       }),
     ).toBeVisible()
     await expect(page.locator('.message-strip')).toContainText(name)

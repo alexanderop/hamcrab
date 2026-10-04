@@ -1,4 +1,11 @@
 import { foods, type FoodId } from './foods'
+import {
+  advanceFriendship,
+  createFriendship,
+  foodAvailable,
+  rewardCare,
+  type Friendship,
+} from './friendship'
 
 export type PetSnapshot = Readonly<{
   version: 1
@@ -8,6 +15,7 @@ export type PetSnapshot = Readonly<{
   energy: number
   sleeping: boolean
   careCount: number
+  friendship: Friendship
   createdAt: number
   updatedAt: number
 }>
@@ -30,6 +38,7 @@ export type CareMessage =
   | 'tired'
   | 'alreadySleeping'
   | 'alreadyAwake'
+  | 'foodLocked'
 export type CareResult = {
   pet: PetSnapshot
   accepted: boolean
@@ -47,6 +56,7 @@ export function createPet(now: number): PetSnapshot {
     energy: 72,
     sleeping: false,
     careCount: 0,
+    friendship: createFriendship(now),
     createdAt: now,
     updatedAt: now,
   }
@@ -60,6 +70,7 @@ export function advancePet(pet: PetSnapshot, now: number): PetSnapshot {
     happiness: clamp(pet.happiness - 3 * hours),
     energy: clamp(pet.energy + (pet.sleeping ? 20 : -5) * hours),
     updatedAt: Math.max(pet.updatedAt, now),
+    friendship: advanceFriendship(pet.friendship, Math.max(now, pet.updatedAt)),
   }
 }
 
@@ -93,7 +104,14 @@ export function careForPet(
       message: pet.sleeping ? 'alreadySleeping' : 'alreadyAwake',
     }
   }
-  const cared = { ...pet, careCount: pet.careCount + 1 }
+  if (action.type === 'feed' && !foodAvailable(pet.friendship, action.food)) {
+    return { pet, accepted: false, message: 'foodLocked' }
+  }
+  const cared = {
+    ...pet,
+    careCount: pet.careCount + 1,
+    friendship: rewardCare(pet, action.type),
+  }
   switch (action.type) {
     case 'feed': {
       const food = foods[action.food]

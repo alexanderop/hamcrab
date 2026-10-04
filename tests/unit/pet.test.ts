@@ -21,7 +21,17 @@ describe('care rules', () => {
       expect(careForPet(before, { type: 'feed', food }, now)).toEqual({
         accepted: true,
         message: food,
-        pet: { ...before, fullness, happiness, energy, careCount: 1 },
+        pet: {
+          ...before,
+          fullness,
+          happiness,
+          energy,
+          careCount: 1,
+          friendship: {
+            points: 4,
+            daily: { ...before.friendship.daily, feed: 1 },
+          },
+        },
       })
     },
   )

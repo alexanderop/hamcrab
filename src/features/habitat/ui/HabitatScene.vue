@@ -5,10 +5,14 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
 import { createSnack } from '../three/snacks'
 import type { SnackKind } from '../scene-types'
 import { disposeObject } from '../three/disposeObject'
+import { createRewards } from '../three/rewards'
 import { createCreature } from '../three/creature'
 import type { CostumePalette, CreatureReaction } from '../scene-types'
 
 const props = defineProps<{
+  ribbon: boolean
+  ball: boolean
+  flower: boolean
   palette: CostumePalette
   description: string
   fallbackTitle: string
@@ -20,6 +24,7 @@ const props = defineProps<{
 }>()
 const emit = defineEmits<{ ready: [] }>()
 const host = ref<HTMLDivElement>()
+const ballPlaying = ref(false)
 const activeSnack = ref<SnackKind | null>(null)
 const status = ref<'loading' | 'ready' | 'fallback'>('loading')
 let cleanup: (() => void) | undefined
@@ -68,6 +73,19 @@ onMounted(() => {
     controls.addEventListener('change', invalidate)
     const creature = createCreature()
     creature.setPalette(props.palette)
+    const rewards = createRewards()
+    creature.head.add(rewards.ribbon)
+    scene.add(rewards.ball, rewards.flower)
+    const stopRewardWatch = watch(
+      () => [props.ribbon, props.ball, props.flower],
+      () => {
+        rewards.ribbon.visible = props.ribbon
+        rewards.ball.visible = props.ball
+        rewards.flower.visible = props.flower
+        invalidate()
+      },
+      { immediate: true },
+    )
     const stopPaletteWatch = watch(
       () => props.palette,
       (palette) => {
@@ -199,6 +217,10 @@ onMounted(() => {
         : Math.sin(time * (props.sleeping ? 1.15 : 1.45))
       const still = reducedMotion.matches
       const play = reacting && props.reaction === 'play'
+      ballPlaying.value = play && props.ball
+      rewards.ball.position.y =
+        0.2 + (ballPlaying.value ? Math.abs(Math.sin(age * 9)) * 0.42 : 0)
+      rewards.ball.rotation.z = ballPlaying.value ? age * 5 : 0
       const feed = reacting && props.reaction === 'feed'
       const pet = reacting && props.reaction === 'pet'
       const anticipation = play ? Math.sin(Math.min(age / 0.2, 1) * Math.PI) : 0
@@ -293,6 +315,7 @@ onMounted(() => {
       stopPaletteWatch()
       stopSnackWatch()
       stopSleepingWatch()
+      stopRewardWatch()
       cancelAnimationFrame(frame)
       status.value = 'fallback'
     }
@@ -301,6 +324,7 @@ onMounted(() => {
       stopPaletteWatch()
       stopSnackWatch()
       stopSleepingWatch()
+      stopRewardWatch()
       cancelAnimationFrame(frame)
       reducedMotion.removeEventListener('change', invalidate)
       observer.disconnect()
@@ -329,6 +353,10 @@ onBeforeUnmount(() => cleanup?.())
     class="habitat-scene"
     :data-renderer="status"
     :data-snack="activeSnack"
+    :data-ribbon="ribbon"
+    :data-ball="ball"
+    :data-ball-playing="ballPlaying"
+    :data-flower="flower"
     role="img"
     :aria-label="description"
     tabindex="0"

@@ -164,6 +164,54 @@ export function createSnack(kind: SnackKind): THREE.Group {
       const sesame = mesh(sphere, seed, [x, y, 0.36], [0.012, 0.032, 0.009])
       sesame.rotation.z = index * 1.3
     }
+  } else if (kind === 'strawberry') {
+    const red = material('#e94a55', 0.6)
+    const leaf = material('#609f4f', 0.85)
+    const seed = material('#ffe3a0', 0.75)
+    const profile: [number, number][] = [
+      [0, -0.65],
+      [0.12, -0.53],
+      [0.29, -0.3],
+      [0.41, 0],
+      [0.44, 0.23],
+      [0.34, 0.4],
+      [0, 0.42],
+    ]
+    mesh(
+      new THREE.LatheGeometry(
+        profile.map(([x, y]) => new THREE.Vector2(x, y)),
+        36,
+      ),
+      red,
+    )
+    for (const [row, y, radius] of [
+      [0, -0.3, 0.3],
+      [1, -0.05, 0.4],
+      [2, 0.18, 0.44],
+      [3, 0.32, 0.39],
+    ]) {
+      for (let index = 0; index < 9; index++) {
+        const angle = ((index + row * 0.5) * Math.PI * 2) / 9
+        const dot = mesh(
+          sphere,
+          seed,
+          [Math.sin(angle) * radius, y, Math.cos(angle) * radius],
+          [0.018, 0.032, 0.013],
+        )
+        dot.rotation.y = angle
+      }
+    }
+    for (let index = 0; index < 5; index++) {
+      const angle = (index * Math.PI * 2) / 5
+      const green = mesh(
+        sphere,
+        leaf,
+        [Math.sin(angle) * 0.18, 0.42, Math.cos(angle) * 0.18],
+        [0.065, 0.035, 0.23],
+      )
+      green.rotation.y = angle
+    }
+    mesh(new THREE.CylinderGeometry(0.025, 0.035, 0.17, 10), leaf, [0, 0.49, 0])
   } else {
     const glass = material('#593018', 0.25)
     const profile: [number, number][] = [

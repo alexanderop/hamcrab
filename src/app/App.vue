@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onUnmounted, ref, watchEffect } from 'vue'
+import { computed, onUnmounted, ref, watch, watchEffect } from 'vue'
 import {
   Heart,
   Sun,
@@ -15,6 +15,8 @@ import {
 import { HabitatScene, SnackPreview, type SnackKind } from '../features/habitat'
 import {
   usePetSession,
+  friendshipView,
+  FriendshipPanel,
   FoodMenu,
   PetNameForm,
   type CareAction,
@@ -55,6 +57,7 @@ const snackKinds: Record<FoodId, SnackKind> = {
   franzbroetchen: 'pastry',
   doener: 'kebab',
   augustiner: 'bottle',
+  strawberry: 'strawberry',
 }
 const foodNotice = computed(() =>
   error.value
@@ -64,7 +67,43 @@ const foodNotice = computed(() =>
       : null,
 )
 const online = ref(navigator.onLine)
-const level = computed(() => Math.floor(pet.value.careCount / 5) + 1)
+const friendship = computed(() => friendshipView(pet.value))
+const celebration = ref('')
+const celebrationDay = ref(-1)
+watch(
+  () => preferences.value.language,
+  () => {
+    celebration.value = ''
+  },
+)
+const sceneDescription = computed(() =>
+  [
+    text.value.scene,
+    ...friendship.value.unlocked.map(
+      (reward) => text.value.friendship.descriptions[reward],
+    ),
+  ].join(' '),
+)
+async function careWithCelebration(action: CareAction) {
+  const before = friendship.value
+  const day = pet.value.friendship.daily.day
+  const accepted = await care(action)
+  if (!accepted) return false
+  const after = friendship.value
+  celebrationDay.value = pet.value.friendship.daily.day
+  celebration.value = after.unlocked
+    .filter((reward) => !before.unlocked.includes(reward))
+    .map((reward) =>
+      text.value.friendship.celebration(text.value.friendship.rewards[reward]),
+    )
+    .join(' ')
+  if (
+    after.wish.complete &&
+    (!before.wish.complete || day !== pet.value.friendship.daily.day)
+  )
+    celebration.value += ` ${text.value.friendship.wishDone}.`
+  return true
+}
 const needs = computed(() => [
   {
     label: text.value.fullness,
@@ -83,13 +122,13 @@ const needs = computed(() => [
   },
 ])
 async function act(action: Exclude<CareAction['type'], 'feed'>) {
-  const accepted = await care({ type: action })
+  const accepted = await careWithCelebration({ type: action })
   if (!accepted) return
   reaction.value = action === 'play' || action === 'pet' ? action : 'idle'
   reactionId.value++
 }
 async function feed(food: FoodId) {
-  const accepted = await care({ type: 'feed', food })
+  const accepted = await careWithCelebration({ type: 'feed', food })
   if (!accepted) return
   servedSnack.value = snackKinds[food]
   reaction.value = 'feed'
@@ -138,7 +177,9 @@ onUnmounted(() => {
               <div class="header-tools">
                 <span
                   ><component :is="pet.sleeping ? Moon : Sun" :size="14" /> LVL
-                  {{ String(level).padStart(2, '0') }}</span
+                  {{
+                    ready ? String(friendship.level).padStart(2, '0') : '…'
+                  }}</span
                 >
                 <button
                   class="settings-trigger"
@@ -173,10 +214,22 @@ onUnmounted(() => {
                 </div>
               </div>
             </div>
+            <FriendshipPanel
+              :view="friendship"
+              :ready="ready"
+              :loading="text.loading"
+              :text="text.friendship"
+              :celebration="
+                celebrationDay === pet.friendship.daily.day ? celebration : ''
+              "
+            />
             <div class="scene-wrap">
               <HabitatScene
                 :palette="palettes[preferences.costumeColor]"
-                :description="text.scene"
+                :description="sceneDescription"
+                :ribbon="ready && friendship.unlocked.includes('ribbon')"
+                :ball="ready && friendship.unlocked.includes('ball')"
+                :flower="ready && friendship.unlocked.includes('flower')"
                 :fallback-title="text.fallback"
                 :fallback-description="text.no3d"
                 :sleeping="pet.sleeping"
@@ -262,6 +315,7 @@ onUnmounted(() => {
       <FoodMenu
         ref="foodMenu"
         :selected="selectedFood"
+        :available-foods="friendship.availableFoods"
         :disabled="!ready || busy || !!error || pet.sleeping"
         :notice="foodNotice"
         :text="text.food"

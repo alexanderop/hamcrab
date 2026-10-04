@@ -50,7 +50,20 @@ it('serializes care and rename across independent IndexedDB connections', async 
 })
 it('reads legacy version-1 saves and round-trips a renamed sleeping companion', async () => {
   const { first, second, raw } = database()
-  await raw.table('pets').put({ ...createPet(now), sleeping: true }, 'pinchy')
+  const legacy = {
+    version: 1,
+    name: 'Pinchy',
+    fullness: 65,
+    happiness: 78,
+    energy: 72,
+    sleeping: true,
+    careCount: 0,
+    createdAt: now,
+    updatedAt: now,
+  }
+  await raw.table('pets').put(legacy, 'pinchy')
+  expect(await first.load()).toEqual({ ...createPet(now), sleeping: true })
+  expect(await raw.table('pets').get('pinchy')).toEqual(legacy)
   await first.rename('Schlummer')
   expect(await second.load()).toEqual({
     ...createPet(now),
@@ -64,6 +77,18 @@ it.each([
   { ...createPet(now), updatedAt: now - 1 },
   { ...createPet(now), version: 2 },
   { ...createPet(now), name: ' ' },
+  { ...createPet(now), friendship: null },
+  {
+    ...createPet(now),
+    friendship: { ...createPet(now).friendship, points: 101 },
+  },
+  {
+    ...createPet(now),
+    friendship: {
+      ...createPet(now).friendship,
+      daily: { ...createPet(now).friendship.daily, feed: 3 },
+    },
+  },
 ])('preserves invalid data on load, care and rename: %j', async (corrupt) => {
   const { first, raw } = database()
   await raw.table('pets').put(corrupt, 'pinchy')
@@ -110,4 +135,45 @@ it('round-trips real localStorage and falls back safely for invalid preferences'
     expect(store.read()).toEqual(defaults)
     expect(localStorage.getItem(key)).toBe(raw)
   }
+})
+
+it('persists legacy progress on care and reloads it through another connection', async () => {
+  const { first, second, raw } = database()
+  const legacy = {
+    version: 1,
+    name: 'Milo',
+    fullness: 65,
+    happiness: 78,
+    energy: 72,
+    sleeping: false,
+    careCount: 9,
+    createdAt: now,
+    updatedAt: now,
+  }
+  await raw.table('pets').put(legacy, 'pinchy')
+  expect((await first.load()).friendship.points).toBe(26)
+  expect(await raw.table('pets').get('pinchy')).toEqual(legacy)
+  await first.care({ type: 'pet' })
+  expect((await second.load()).friendship.points).toBe(30)
+  expect(await raw.table('pets').get('pinchy')).toMatchObject({
+    version: 1,
+    name: 'Milo',
+    careCount: 10,
+    friendship: { points: 30 },
+  })
+})
+
+it('awards one wish bonus when two homes play concurrently', async () => {
+  const { first, second, raw } = database()
+  await raw.table('pets').put({ ...createPet(now), happiness: 100 }, 'pinchy')
+  const results = await Promise.all([
+    first.care({ type: 'play' }),
+    second.care({ type: 'play' }),
+  ])
+  expect(results.every((result) => result.accepted)).toBe(true)
+  expect((await first.load()).friendship).toMatchObject({
+    points: 6,
+    daily: { play: 0, wishCompleted: true },
+  })
+  expect((await second.load()).careCount).toBe(2)
 })

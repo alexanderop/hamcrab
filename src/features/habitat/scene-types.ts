@@ -4,4 +4,4 @@ export type CostumePalette = Readonly<{
   light: string
   shade: string
 }>
-export type SnackKind = 'pastry' | 'kebab' | 'bottle'
+export type SnackKind = 'pastry' | 'kebab' | 'bottle' | 'strawberry'

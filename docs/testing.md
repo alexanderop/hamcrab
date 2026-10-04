@@ -14,11 +14,11 @@ Es gibt keine Modul-Mocks, keine simulierte DOM-Umgebung und keine HTTP-Mock-Inf
 
 ## Migration der bisherigen E2E-Abdeckung
 
-Die bisherigen 46 E2E-Szenarien bestanden vor und nach dem Architekturumbau. Die reduzierte Suite enthält 26 Szenarien pro Browser. Verschobene Tests wurden durch passende niedrigere Ebenen ersetzt:
+Die bisherigen 46 E2E-Szenarien bestanden vor und nach dem Architekturumbau. Die damalige reduzierte Suite enthält 26 Szenarien pro Browser. Die Freundschaftserweiterung ergänzt fünf weitere Journeys. Verschobene Tests wurden durch passende niedrigere Ebenen ersetzt:
 
 | Bisheriges E2E-Thema                                          | Neue Hauptabdeckung                                                     | Verbleibender App-Nachweis                                                  |
 | ------------------------------------------------------------- | ----------------------------------------------------------------------- | --------------------------------------------------------------------------- |
-| Effekte aller drei Speisen, Grenzwerte, Zeitfortschritt       | `tests/unit/pet.test.ts`                                                | Pflege nach Reload, Schlaf/Wecken und Offline-Futterauswahl                 |
+| Effekte der bisherigen Speisen, Grenzwerte, Zeitfortschritt   | `tests/unit/pet.test.ts`                                                | Pflege nach Reload, Schlaf/Wecken und Offline-Futterauswahl                 |
 | Leere/getrimmte Namen, Umbenennen im Schlaf                   | Domain-/Service-Tests und echter Speicheradapter                        | Name bleibt offline sichtbar; Umbenennen und Pflege in zwei Tabs            |
 | Unfertiger Namensentwurf, Validierungsanzeige, Speicherfehler | `components.test.ts`, `settings.test.ts`, `persistence.test.ts`         | Beschädigter Spielstand wird in der App erklärt und erhalten                |
 | Menü schließen ohne Füttern, Fokus zurückgeben                | Browser-Komponententest mit nativem Dialog                              | Futterauswahl, 3D-Vorschau, Animation und kleine Bildschirme                |
@@ -26,6 +26,16 @@ Die bisherigen 46 E2E-Szenarien bestanden vor und nach dem Architekturumbau. Die
 | Ungültige Präferenzen und nicht verfügbarer Speicher          | Echter localStorage-Adapter, Service-Fehlerpfade und gerenderter Dialog | Sprache/Farben nach Offline-Reload und echte Tab-Synchronisierung           |
 | Parallele Pflege                                              | Browser-Test mit zwei echten Dexie-Verbindungen                         | Pflege plus Umbenennen in zwei echten App-Tabs, Schlafkonflikt beim Füttern |
 | Zusätzlicher generischer Offline-Besuch                       | Zusammengeführt mit spezifischen Offline-Journeys                       | Snack, Name und Einstellungen mit Produktions-Service-Worker                |
+
+## Freundschaft und Freischaltungen
+
+`tests/unit/friendship.test.ts` prüft Schwellenwerte, Tageslimits, Wünsche bei vollen Bedürfnissen, UTC-Tageswechsel und eine zurückgestellte Uhr nach gespeicherter Belohnung. Dieselbe Suite prüft gesperrte Erdbeeren, den Punktedeckel, exakte alte Speicherobjekte und fehlerhafte neue Daten. Die Zeit ist eine Zahl als Funktionsargument.
+
+`tests/browser/persistence.test.ts` prüft die Migration mit einem handgeschriebenen alten Objekt. Lesen verändert den alten Datensatz nicht, erfolgreiche Pflege speichert den umgerechneten Fortschritt. Zwei echte IndexedDB-Verbindungen erfüllen denselben Wunsch gleichzeitig und erhalten zusammen genau einen Bonus. Ungültige neue Felder werden nicht als alter Spielstand akzeptiert.
+
+`tests/browser/friendship.test.ts` prüft die kompakte Übersicht, den nativen Dialog, Fokus nach Escape, neutrale Ladeanzeige, lokale Belohnungsanzeige und die gesperrte beziehungsweise verfügbare Erdbeere. Die vorhandenen Session-Tests prüfen weiterhin Speicherfehler und erhaltene Spielstände.
+
+`tests/e2e/friendship.feature` prüft eine echte erste Freischaltung mit anschließendem Offline-Reload, die nutzbare Erdbeere mit 3D-Vorschau, Spielball und Blume, einen Tageswunsch in zwei App-Tabs und den Dialog auf einem kleinen Bildschirm. Höhere Freischaltungen beginnen mit gültigen gespeicherten Grenzwerten und überschreiten die Schwelle durch echte Pflege. Screenshots in `test-results/friendship-*.png` zeigen die gerenderten Belohnungen. Die automatischen Attribute allein sind kein Nachweis für deren visuelle Qualität.
 
 `tests/support/pet-repository.ts` ist ausschließlich eine deterministische Testabhängigkeit. Komponenten-Harnesses verbinden echte Komponenten mit explizit übergebenen Services; sie kopieren keine Spielregeln. Datenbanken und Storage-Schlüssel der Adaptertests sind pro Test eindeutig und werden aufgeräumt.
 

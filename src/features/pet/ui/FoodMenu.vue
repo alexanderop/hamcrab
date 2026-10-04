@@ -5,6 +5,7 @@ import { foods, foodIds, type FoodId } from '../domain/foods'
 
 const props = defineProps<{
   selected: FoodId
+  availableFoods: readonly FoodId[]
   disabled: boolean
   notice: string | null
   text: {
@@ -12,6 +13,7 @@ const props = defineProps<{
     choose: string
     close: string
     give: string
+    locked: string
     names: Record<FoodId, string>
   }
   meters: { fullness: string; happiness: string; energy: string }
@@ -64,11 +66,17 @@ defineExpose({ open, close })
           type="radio"
           name="food"
           :value="food"
+          :disabled="!availableFoods.includes(food)"
           :aria-label="text.names[food]"
           :checked="selected === food"
           @change="emit('select', food)"
         />
-        <span class="food-name">{{ text.names[food] }}</span>
+        <span class="food-name"
+          >{{ text.names[food]
+          }}<small v-if="!availableFoods.includes(food)">
+            · {{ text.locked }}</small
+          ></span
+        >
         <span class="food-effects">
           <template v-for="effect in effects" :key="effect.key">
             <span
@@ -86,7 +94,7 @@ defineExpose({ open, close })
     <p v-if="notice" role="alert" class="settings-note">{{ notice }}</p>
     <button
       class="settings-done"
-      :disabled="disabled"
+      :disabled="disabled || !availableFoods.includes(selected)"
       @click="emit('give', props.selected)"
     >
       {{ text.give }}

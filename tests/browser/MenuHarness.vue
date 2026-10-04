@@ -3,6 +3,7 @@ import { ref } from 'vue'
 import FoodMenu from '../../src/features/pet/ui/FoodMenu.vue'
 import type { FoodId } from '../../src/features/pet/domain/foods'
 import { messages } from '../../src/features/settings/ui/messages'
+const props = defineProps<{ unlocked?: boolean }>()
 const menu = ref<InstanceType<typeof FoodMenu>>()
 const selected = ref<FoodId>('franzbroetchen')
 const served = ref('Nothing served')
@@ -18,6 +19,11 @@ function give(food: FoodId) {
   <FoodMenu
     ref="menu"
     :selected="selected"
+    :available-foods="
+      props.unlocked
+        ? ['franzbroetchen', 'doener', 'augustiner', 'strawberry']
+        : ['franzbroetchen', 'doener', 'augustiner']
+    "
     :disabled="false"
     :notice="null"
     :text="text.food"

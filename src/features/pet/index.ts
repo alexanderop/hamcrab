@@ -4,3 +4,6 @@ export { usePetSession } from './ui/usePetSession'
 export { createPetService, type PetService } from './application/pet-service'
 export type { CareAction } from './domain/pet'
 export type { FoodId } from './domain/foods'
+
+export { friendshipView } from './domain/friendship'
+export { default as FriendshipPanel } from './ui/FriendshipPanel.vue'
