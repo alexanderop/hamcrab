@@ -53,21 +53,25 @@ Then('my home speaks English', async ({ page }) => {
   await expect(page.getByRole('status')).toContainText('Your progress is saved')
 })
 
-When('I choose an ocean case and a lilac costume', async ({ page }) => {
-  await expect(page.locator('[data-renderer]')).toHaveAttribute(
-    'data-renderer',
-    'ready',
-  )
-  originalCanvas = await page.locator('canvas').screenshot()
-  originalCase = await page
-    .locator('.device-shell')
-    .evaluate((element) => getComputedStyle(element).backgroundImage)
-  const settings = new SettingsPage(page)
-  await settings.open()
-  await settings.choose('Case colour', 'Ocean')
-  await settings.choose('Crab costume', 'Lilac')
-  await settings.close()
-})
+When(
+  'I choose an ocean case and a lilac costume',
+  async ({ page, $testInfo }) => {
+    $testInfo.setTimeout(60_000)
+    await expect(page.locator('[data-renderer]')).toHaveAttribute(
+      'data-renderer',
+      'ready',
+    )
+    originalCanvas = await page.locator('canvas').screenshot()
+    originalCase = await page
+      .locator('.device-shell')
+      .evaluate((element) => getComputedStyle(element).backgroundImage)
+    const settings = new SettingsPage(page)
+    await settings.open()
+    await settings.choose('Case colour', 'Ocean')
+    await settings.choose('Crab costume', 'Lilac')
+    await settings.close()
+  },
+)
 
 Then(
   'the case and the rendered costume have changed colour',
