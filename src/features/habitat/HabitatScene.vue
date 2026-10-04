@@ -45,7 +45,7 @@ onMounted(() => {
     const studio = new RoomEnvironment()
     const pmrem = new THREE.PMREMGenerator(renderer)
     try {
-      environment = pmrem.fromScene(studio, 0.04)
+      environment = pmrem.fromScene(studio, 0.04, 0.1, 100, { size: 64 })
       scene.environment = environment.texture
       scene.environmentIntensity = 0.32
     } finally {
@@ -119,6 +119,7 @@ onMounted(() => {
     contact.rotation.x = -Math.PI / 2
     contact.position.set(0, -0.01, 0.1)
     scene.add(contact)
+    let renderRequested = true
     const resize = () => {
       const width = element.clientWidth
       const height = element.clientHeight
@@ -127,6 +128,7 @@ onMounted(() => {
       camera.aspect = width / height
       camera.position.setLength(camera.aspect < 0.9 ? 8.0 : 7.55)
       camera.updateProjectionMatrix()
+      renderRequested = true
     }
     const observer = new ResizeObserver(resize)
     observer.observe(element)
@@ -136,11 +138,15 @@ onMounted(() => {
     const clock = new THREE.Clock()
     let frame = 0
     let ready = false
+    let lastSleeping = props.sleeping
+    let lastReducedMotion = reducedMotion.matches
     react = () => {
       reactionStart = clock.getElapsedTime()
+      renderRequested = true
     }
     rotate = (direction) => {
       creature.root.rotation.y += direction * 0.2
+      renderRequested = true
     }
     const animate = () => {
       if (!renderer || !scene) return
@@ -238,8 +244,21 @@ onMounted(() => {
           ? 0
           : Math.sin(time * 1.2 - index * 0.6) * 0.018
       })
-      controls.update()
-      renderer.render(scene, camera)
+      const cameraChanged = controls.update()
+      const expressionChanged =
+        lastSleeping !== props.sleeping || lastReducedMotion !== still
+      if (
+        !still ||
+        !ready ||
+        renderRequested ||
+        cameraChanged ||
+        expressionChanged
+      ) {
+        renderer.render(scene, camera)
+        renderRequested = false
+        lastSleeping = props.sleeping
+        lastReducedMotion = still
+      }
       if (!ready) {
         ready = true
         status.value = 'ready'
