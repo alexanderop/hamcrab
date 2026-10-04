@@ -2,11 +2,17 @@ import { z } from 'zod'
 import { foods, type FoodId } from './foods'
 
 const meter = z.number().finite().min(0).max(100)
+export const petNameSchema = z
+  .string()
+  .trim()
+  .min(1)
+  .max(24)
+  .refine((name) => !/\p{Cc}/u.test(name))
 
 export const petSnapshotSchema = z
   .object({
     version: z.literal(1),
-    name: z.literal('Pinchy'),
+    name: petNameSchema,
     fullness: meter,
     happiness: meter,
     energy: meter,

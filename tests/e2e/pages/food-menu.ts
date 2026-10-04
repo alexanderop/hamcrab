@@ -1,7 +1,10 @@
 import { expect, type Page } from '@playwright/test'
 
 export class FoodMenuPage {
-  constructor(readonly page: Page) {}
+  constructor(
+    readonly page: Page,
+    readonly petName = 'Pinchy',
+  ) {}
 
   get dialog() {
     return this.page.getByRole('dialog', { name: /^(Snack time|Hunger\?)$/ })
@@ -18,7 +21,13 @@ export class FoodMenuPage {
 
   async give() {
     await this.dialog
-      .getByRole('button', { name: /^(Give to Pinchy|Pinchy geben)$/ })
+      .getByRole('button', { name: `Give to ${this.petName}`, exact: true })
+      .or(
+        this.dialog.getByRole('button', {
+          name: `${this.petName} geben`,
+          exact: true,
+        }),
+      )
       .click()
   }
 

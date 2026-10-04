@@ -2,10 +2,11 @@ import { onMounted, onUnmounted, readonly, ref } from 'vue'
 import {
   advancePet,
   createPet,
+  petNameSchema,
   type CareAction,
   type CareMessage,
 } from './domain'
-import { InvalidPetDataError, loadPet, saveCare } from './storage'
+import { InvalidPetDataError, loadPet, saveCare, savePetName } from './storage'
 
 export function usePetSession() {
   const pet = ref(createPet(Date.now()))
@@ -64,6 +65,26 @@ export function usePetSession() {
     }
   }
 
+  async function rename(name: string) {
+    if (!ready.value || busy.value || disposed || error.value) return false
+    const parsed = petNameSchema.safeParse(name)
+    if (!parsed.success) return false
+    busy.value = true
+    saved.value = false
+    try {
+      const stored = await savePetName(parsed.data)
+      if (disposed) return false
+      pet.value = advancePet(stored, Date.now())
+      saved.value = true
+      return true
+    } catch (cause) {
+      if (!disposed) reportError(cause, true)
+      return false
+    } finally {
+      if (!disposed) busy.value = false
+    }
+  }
+
   function refreshWhenVisible() {
     if (document.visibilityState === 'visible' && !error.value) void retry()
   }
@@ -88,6 +109,7 @@ export function usePetSession() {
     message: readonly(message),
     saved: readonly(saved),
     care,
+    rename,
     retry,
   }
 }

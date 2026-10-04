@@ -126,6 +126,7 @@ button:focus-visible,
   position: relative;
 }
 .screen-header {
+  gap: 8px;
   padding: 12px 12px 9px;
   display: flex;
   align-items: center;
@@ -133,12 +134,17 @@ button:focus-visible,
   flex-shrink: 0;
 }
 .screen-header h2 {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   font-family: var(--pixel);
   font-size: clamp(12px, 1.7vmin, 18px);
   margin: 0;
 }
 .header-tools,
 .header-tools > span {
+  flex-shrink: 0;
   display: flex;
   align-items: center;
   gap: 5px;
@@ -444,6 +450,50 @@ button:focus-visible,
   padding: 0;
   margin: 0 0 18px;
   border: 0;
+}
+.pet-name-form {
+  margin-bottom: 18px;
+}
+.pet-name-form > label {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 13px;
+  font-weight: bold;
+}
+.pet-name-controls {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+.pet-name-controls input,
+.pet-name-controls button {
+  min-height: 44px;
+  border: 1px solid #87936a;
+  border-radius: 6px;
+  color: var(--ink);
+  background: #e4e8c9;
+  padding: 8px;
+}
+.pet-name-controls input {
+  min-width: 0;
+  width: 100%;
+  font:
+    16px 'Courier New',
+    monospace;
+}
+.pet-name-controls input:focus-visible {
+  outline: 3px solid #395b99;
+  outline-offset: 2px;
+}
+.pet-name-controls input[aria-invalid='true'] {
+  border-color: #933624;
+}
+.pet-name-controls button {
+  font-weight: bold;
+  font-size: 12px;
+}
+.pet-name-form .settings-note {
+  margin: 0 0 6px;
 }
 .settings-group legend {
   padding: 0;

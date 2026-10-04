@@ -2,6 +2,7 @@ import Dexie, { type Table } from 'dexie'
 import {
   careForPet,
   createPet,
+  petNameSchema,
   petSnapshotSchema,
   type CareAction,
   type PetSnapshot,
@@ -45,5 +46,17 @@ export async function saveCare(action: CareAction) {
     if (result.accepted || existing === undefined)
       await pets.put(result.pet, petKey)
     return result
+  })
+}
+
+export async function savePetName(name: string): Promise<PetSnapshot> {
+  const validName = petNameSchema.parse(name)
+  return database.transaction('rw', pets, async () => {
+    const existing = await pets.get(petKey)
+    const snapshot =
+      existing === undefined ? createPet(Date.now()) : parsePet(existing)
+    const renamed = { ...snapshot, name: validName }
+    await pets.put(renamed, petKey)
+    return renamed
   })
 }

@@ -11,11 +11,22 @@ defineProps<{
 }>()
 const emit = defineEmits<{ change: [change: Partial<Preferences>] }>()
 const dialog = ref<HTMLDialogElement>()
-defineExpose({ open: () => dialog.value?.showModal() })
+const opened = ref(false)
+defineExpose({
+  open: () => {
+    opened.value = true
+    dialog.value?.showModal()
+  },
+})
 </script>
 
 <template>
-  <dialog ref="dialog" class="settings-dialog" aria-labelledby="settings-title">
+  <dialog
+    ref="dialog"
+    class="settings-dialog"
+    aria-labelledby="settings-title"
+    @close="opened = false"
+  >
     <div class="settings-heading">
       <h2 id="settings-title">{{ text.settings }}</h2>
       <button
@@ -27,6 +38,7 @@ defineExpose({ open: () => dialog.value?.showModal() })
         <X :size="19" />
       </button>
     </div>
+    <slot v-if="opened" />
     <fieldset class="settings-group">
       <legend>{{ text.language }}</legend>
       <div class="language-options">

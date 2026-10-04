@@ -195,6 +195,10 @@ Then(
     await expect(dialog).toBeInViewport({ ratio: 1 })
     await page.keyboard.press('Tab')
     await expect(
+      dialog.getByRole('textbox', { name: 'Pet name' }),
+    ).toBeFocused()
+    await page.keyboard.press('Tab')
+    await expect(
       dialog.getByRole('radio', { name: 'English', exact: true }),
     ).toBeFocused()
     await page.keyboard.press('ArrowRight')

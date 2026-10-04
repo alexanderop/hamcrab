@@ -14,6 +14,8 @@ Die Nahrungsmitteltabelle in `features/pet/foods.ts` definiert die Effekte. Pfle
 
 Pflegeergebnisse liefern sprachunabhängige Meldungsschlüssel. `App.vue` übersetzt diese und reicht die ausgewählte Palette und Beschreibung an die 3D-Ansicht weiter. Die Ansicht ändert vorhandene Materialien, ohne Geometrie oder Kamera neu anzulegen.
 
+Der Name gehört zum Haustier. `PetNameForm` wird über einen Slot in die Einstellungen eingesetzt; Validierung und Speicherung bleiben in `features/pet`. Die separate Umbenennung liest den neuesten Spielstand innerhalb einer Dexie-Transaktion und ändert ausschließlich den Namen. Dadurch bleiben parallele Pflegeaktionen erhalten. Bestehende Spielstände mit dem Standardnamen sind weiterhin gültig. Die Übersetzungsfunktionen erhalten den aktuellen Namen von `App.vue`.
+
 Vite PWA erzeugt den Service Worker und speichert die gebaute Anwendung offline. Die Installation erfolgt über das Browsermenü.
 
 `App.vue` verbindet die Features und die sichtbare Oberfläche. Alle Laufzeitressourcen sind lokal gebündelt.

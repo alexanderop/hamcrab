@@ -17,6 +17,7 @@ import { usePetSession } from './features/pet/usePetSession'
 import type { CareAction } from './features/pet/domain'
 import type { FoodId } from './features/pet/foods'
 import FoodMenu from './features/pet/FoodMenu.vue'
+import PetNameForm from './features/pet/PetNameForm.vue'
 import SnackPreview from './features/habitat/SnackPreview.vue'
 import type { SnackKind } from './features/habitat/snacks'
 
@@ -26,7 +27,11 @@ import { messages } from './features/settings/messages'
 import { palettes } from './features/settings/preferences'
 
 const { preferences, storageUnavailable, update } = useSettings()
-const text = computed(() => messages[preferences.value.language])
+const { pet, ready, busy, error, message, saved, care, retry, rename } =
+  usePetSession()
+const text = computed(() =>
+  messages[preferences.value.language](pet.value.name),
+)
 const settingsPanel = ref<InstanceType<typeof SettingsPanel>>()
 watchEffect(() => {
   document.documentElement.lang = preferences.value.language
@@ -36,7 +41,6 @@ watchEffect(() => {
     ?.setAttribute('content', palettes[preferences.value.caseColor].base)
 })
 
-const { pet, ready, busy, error, message, saved, care, retry } = usePetSession()
 const reaction = ref<'idle' | 'feed' | 'play' | 'pet'>('idle')
 const reactionId = ref(0)
 const selectedFood = ref<FoodId>('franzbroetchen')
@@ -125,7 +129,7 @@ onUnmounted(() => {
               <WifiOff :size="16" /> {{ text.offline }}
             </div>
             <div class="screen-header">
-              <h2>{{ pet.name }}</h2>
+              <h2 :title="pet.name">{{ pet.name }}</h2>
               <div class="header-tools">
                 <span
                   ><component :is="pet.sleeping ? Moon : Sun" :size="14" /> LVL
@@ -272,7 +276,15 @@ onUnmounted(() => {
         :text="text"
         :storage-unavailable="storageUnavailable"
         @change="update"
-      />
+      >
+        <PetNameForm
+          :name="pet.name"
+          :disabled="!ready || busy || !!error"
+          :error="error ? text.errors[error] : null"
+          :save="rename"
+          :text="text.name"
+        />
+      </SettingsPanel>
     </section>
   </main>
 </template>

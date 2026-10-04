@@ -28,6 +28,8 @@ Die Bedürfnisse verändern sich mit vergangener Zeit. Pro Berechnung zählen h�
 
 Das Zahnrad im Display öffnet die Einstellungen. Englisch ist die Standardsprache; Deutsch lässt sich jederzeit auswählen. Gehäuse und Krabbenkostüm haben jeweils vier unabhängige Farbvarianten. Die Auswahl wird sofort angewendet und lokal gespeichert, auch offline. Gespeicherte Pflegewerte bleiben beim Ändern der Einstellungen erhalten.
 
+In den Einstellungen lässt sich auch der Name ändern: einen Namen mit 1–24 Zeichen eingeben und „Namen speichern“ wählen. Der neue Name erscheint im Display, in den Reaktionen und im Futtermenü. Er bleibt mit dem Spielstand offline erhalten; Umbenennen zählt nicht als Pflegeaktion und weckt ein schlafendes Tier nicht auf. Nicht gespeicherte Namensentwürfe werden beim Schließen verworfen.
+
 Nach einem vollständigen ersten Laden speichert der Service Worker die Anwendung für Offline-Besuche. Die Installation hängt vom Browser ab. Die Installation erfolgt über das Browsermenü. Es gibt keinen Server und keine externen Laufzeitressourcen.
 
 ## Prüfen
