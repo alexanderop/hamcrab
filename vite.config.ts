@@ -10,15 +10,15 @@ export default defineConfig({
     VitePWA({
       registerType: 'autoUpdate',
       manifest: {
-        name: 'Hamcrab • Dein 3D-Taschenfreund',
+        name: 'Hamcrab • Your 3D pocket friend',
         short_name: 'Hamcrab',
         id: base,
         start_url: base,
         scope: base,
-        description: 'Ein kleiner Hamster. Ein großes Hummerherz.',
-        lang: 'de',
+        description: 'A little hamster. A big crab heart.',
+        lang: 'en',
         theme_color: '#f16f54',
-        background_color: '#f8f3e5',
+        background_color: '#ed6245',
         display: 'standalone',
         icons: [
           {

@@ -1,13 +1,18 @@
 import { onMounted, onUnmounted, readonly, ref } from 'vue'
-import { advancePet, createPet, type CareAction } from './domain'
+import {
+  advancePet,
+  createPet,
+  type CareAction,
+  type CareMessage,
+} from './domain'
 import { InvalidPetDataError, loadPet, saveCare } from './storage'
 
 export function usePetSession() {
   const pet = ref(createPet(Date.now()))
   const ready = ref(false)
   const busy = ref(false)
-  const error = ref<string | null>(null)
-  const message = ref('Schön, dass du da bist. Pinchy wartet auf dich!')
+  const error = ref<'invalid' | 'save' | 'load' | null>(null)
+  const message = ref<CareMessage | 'welcome'>('welcome')
   const saved = ref(false)
   let disposed = false
   let timer: ReturnType<typeof setInterval> | undefined
@@ -15,10 +20,10 @@ export function usePetSession() {
   function reportError(cause: unknown, saving: boolean) {
     error.value =
       cause instanceof InvalidPetDataError
-        ? cause.message
+        ? 'invalid'
         : saving
-          ? 'Die Aktion konnte nicht gespeichert werden. Bitte versuche es erneut. Dein letzter Spielstand bleibt erhalten.'
-          : 'Dein Spielstand konnte nicht geladen werden. Bitte erlaube lokalen Browserspeicher und versuche es erneut.'
+          ? 'save'
+          : 'load'
     saved.value = false
   }
 

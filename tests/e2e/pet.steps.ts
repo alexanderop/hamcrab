@@ -3,7 +3,7 @@ import { expect, type Page } from '@playwright/test'
 const { Given, When, Then } = createBdd()
 async function visit(page: Page) {
   await page.goto('./', { waitUntil: 'domcontentloaded' })
-  await expect(page.getByRole('button', { name: 'Füttern' })).toBeEnabled()
+  await expect(page.getByRole('button', { name: 'Feed' })).toBeEnabled()
 }
 Given('I visit my new companion', async ({ page }) => {
   await visit(page)
@@ -32,7 +32,7 @@ Then(
           document.documentElement.scrollHeight === innerHeight,
       ),
     ).toBe(true)
-    for (const name of ['Füttern', 'Spielen', 'Schlafen']) {
+    for (const name of ['Feed', 'Play', 'Sleep']) {
       const button = page.getByRole('button', { name, exact: true })
       await expect(button).toBeInViewport({ ratio: 1 })
       const box = await button.boundingBox()
@@ -58,15 +58,15 @@ Then(
   },
 )
 When('I feed Pinchy', async ({ page }) => {
-  await page.getByRole('button', { name: 'Füttern' }).click()
+  await page.getByRole('button', { name: 'Feed' }).click()
   await expect(
-    page.getByText('Mmmh! Pinchy hat seinen Snack verputzt.', { exact: true }),
+    page.getByText('Mmm! Pinchy finished his snack.', { exact: true }),
   ).toBeVisible()
 })
 When('I play with Pinchy', async ({ page }) => {
-  await page.getByRole('button', { name: 'Spielen' }).click()
+  await page.getByRole('button', { name: 'Play' }).click()
   await expect(
-    page.getByText('Juhu! Eine Runde Spielen macht Pinchy glücklich.', {
+    page.getByText('Hooray! Playing makes Pinchy happy.', {
       exact: true,
     }),
   ).toBeVisible()
@@ -75,9 +75,9 @@ Then(
   'Pinchy has {int} fullness, {int} happiness and {int} energy',
   async ({ page }, fullness: number, happiness: number, energy: number) => {
     for (const [name, value] of [
-      ['Sättigung', fullness],
-      ['Freude', happiness],
-      ['Energie', energy],
+      ['Fullness', fullness],
+      ['Happiness', happiness],
+      ['Energy', energy],
     ] as const)
       await expect(page.getByRole('progressbar', { name })).toHaveAttribute(
         'aria-valuenow',
@@ -87,30 +87,28 @@ Then(
 )
 When('I reload my home', async ({ page }) => {
   await page.reload()
-  await expect(page.getByRole('status')).toContainText(
-    'Euer Spielstand ist gespeichert',
-  )
+  await expect(page.getByRole('status')).toContainText('Your progress is saved')
 })
 Then('I have shared {int} caring gestures', async ({ page }, count: number) => {
   await expect(
-    page.getByText(`${count} gemeinsame Gesten`, { exact: true }),
+    page.getByText(`${count} caring gestures`, { exact: true }),
   ).toBeVisible()
 })
 When('I put Pinchy to sleep', async ({ page }) => {
-  await page.getByRole('button', { name: 'Schlafen' }).click()
-  await expect(page.getByRole('button', { name: 'Wecken' })).toBeEnabled()
+  await page.getByRole('button', { name: 'Sleep' }).click()
+  await expect(page.getByRole('button', { name: 'Wake up' })).toBeEnabled()
 })
 When('I wake Pinchy', async ({ page }) => {
-  await page.getByRole('button', { name: 'Wecken' }).click()
-  await expect(page.getByRole('button', { name: 'Schlafen' })).toBeEnabled()
+  await page.getByRole('button', { name: 'Wake up' }).click()
+  await expect(page.getByRole('button', { name: 'Sleep' })).toBeEnabled()
 })
 Then('active care is unavailable', async ({ page }) => {
-  await expect(page.getByRole('button', { name: 'Füttern' })).toBeDisabled()
-  await expect(page.getByRole('button', { name: 'Spielen' })).toBeDisabled()
+  await expect(page.getByRole('button', { name: 'Feed' })).toBeDisabled()
+  await expect(page.getByRole('button', { name: 'Play' })).toBeDisabled()
 })
 Then('active care is available', async ({ page }) => {
-  await expect(page.getByRole('button', { name: 'Füttern' })).toBeEnabled()
-  await expect(page.getByRole('button', { name: 'Spielen' })).toBeEnabled()
+  await expect(page.getByRole('button', { name: 'Feed' })).toBeEnabled()
+  await expect(page.getByRole('button', { name: 'Play' })).toBeEnabled()
 })
 When('two hours pass', async ({ page }) => {
   await page.clock.install()
@@ -129,7 +127,7 @@ Given('my home is available offline', async ({ page }) => {
 When('I disconnect and reload my home', async ({ page, context }) => {
   await context.setOffline(true)
   await expect(
-    page.getByText('Du bist offline. Eure gemeinsame Zeit geht weiter.'),
+    page.getByText('You’re offline. Your time together goes on.'),
   ).toBeVisible()
   await page.reload()
   expect(
@@ -140,31 +138,31 @@ When('I disconnect and reload my home', async ({ page, context }) => {
       ),
     ),
   ).toBe(false)
-  await expect(page.getByRole('button', { name: 'Füttern' })).toBeEnabled()
+  await expect(page.getByRole('button', { name: 'Feed' })).toBeEnabled()
 })
 When('I care for Pinchy from two tabs', async ({ page, context }) => {
   const second = await context.newPage()
   await second.goto('./', { waitUntil: 'domcontentloaded' })
-  await expect(second.getByRole('button', { name: 'Füttern' })).toBeEnabled()
+  await expect(second.getByRole('button', { name: 'Feed' })).toBeEnabled()
   await Promise.all([
-    page.getByRole('button', { name: 'Füttern' }).click(),
-    second.getByRole('button', { name: 'Spielen' }).click(),
+    page.getByRole('button', { name: 'Feed' }).click(),
+    second.getByRole('button', { name: 'Play' }).click(),
   ])
   await expect(
-    page.getByText('Mmmh! Pinchy hat seinen Snack verputzt.', { exact: true }),
+    page.getByText('Mmm! Pinchy finished his snack.', { exact: true }),
   ).toBeVisible()
   await expect(
-    second.getByText('Juhu! Eine Runde Spielen macht Pinchy glücklich.', {
+    second.getByText('Hooray! Playing makes Pinchy happy.', {
       exact: true,
     }),
   ).toBeVisible()
   await second.close()
 })
 When('I feed Pinchy using the keyboard', async ({ page }) => {
-  const button = page.getByRole('button', { name: 'Füttern' })
+  const button = page.getByRole('button', { name: 'Feed' })
   await button.focus()
   await page.keyboard.press('Enter')
-  await expect(page.getByRole('status')).toContainText('gespeichert')
+  await expect(page.getByRole('status')).toContainText('saved')
 })
 Then('my home fits the screen', async ({ page }) => {
   expect(
@@ -201,9 +199,9 @@ Then(
   'I see a recovery message without losing the saved data',
   async ({ page }) => {
     await expect(page.getByRole('alert')).toContainText(
-      'Er wurde nicht verändert',
+      'It has not been changed',
     )
-    await expect(page.getByRole('button', { name: 'Füttern' })).toBeDisabled()
+    await expect(page.getByRole('button', { name: 'Feed' })).toBeDisabled()
     const stored = await page.evaluate(
       async () =>
         new Promise<unknown>((resolve, reject) => {
@@ -225,8 +223,8 @@ Then(
 )
 When('I feed Pinchy three times', async ({ page }) => {
   for (let i = 0; i < 3; i++) {
-    await page.getByRole('button', { name: 'Füttern' }).click()
-    await expect(page.getByRole('status')).toContainText('gespeichert')
+    await page.getByRole('button', { name: 'Feed' }).click()
+    await expect(page.getByRole('status')).toContainText('saved')
   }
 })
 Then('I can see and rotate the 3D companion', async ({ page, browserName }) => {
@@ -251,7 +249,7 @@ When('I reopen a damaged home', async ({ page }) => {
   await page.reload()
 })
 When('I attempt to feed Pinchy', async ({ page }) => {
-  await page.getByRole('button', { name: 'Füttern' }).click()
+  await page.getByRole('button', { name: 'Feed' }).click()
 })
 
 Then(

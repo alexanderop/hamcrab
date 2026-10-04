@@ -8,6 +8,10 @@ Hamcrab ist eine eigenständige Vue-PWA. Pinchy ist der Name des Haustiers.
 
 `features/habitat` besitzt das prozedurale Three.js-Modell, die Kamera, Animationen und GPU-Ressourcen. Es erhält ausschließlich Darstellungsdaten. Es verändert keine Spielwerte.
 
+`features/settings` besitzt Sprache, Farbpaletten, Übersetzungen und den Einstellungsdialog. Die kleinen Präferenzen liegen getrennt vom Spielstand im lokalen Browserspeicher und werden mit Zod validiert. Neue Besuche starten auf Englisch. Nicht lesbare Präferenzen verwenden Standardwerte, ohne den Spielstand zu verändern. Speicherfehler werden als vorübergehende Auswahl angezeigt. Andere Tabs übernehmen Änderungen über das Storage-Ereignis.
+
+Pflegeergebnisse liefern sprachunabhängige Meldungsschlüssel. `App.vue` übersetzt diese und reicht die ausgewählte Palette und Beschreibung an die 3D-Ansicht weiter. Die Ansicht ändert vorhandene Materialien, ohne Geometrie oder Kamera neu anzulegen.
+
 Vite PWA erzeugt den Service Worker und speichert die gebaute Anwendung offline. Die Installation erfolgt über das Browsermenü.
 
 `App.vue` verbindet die Features und die sichtbare Oberfläche. Alle Laufzeitressourcen sind lokal gebündelt.
@@ -22,4 +26,4 @@ Die Figur entsteht aus editierbarer Geometrie. Sie ist eine stilisierte Interpre
 
 ## Prüfung
 
-Ausschließlich Playwright mit ausführbaren Gherkin-Szenarien prüft das Verhalten. Es gibt keine Unit- oder Komponententest-Suite. Tests öffnen den Produktionsbuild, bedienen sichtbare Elemente und prüfen Pflege, Schlaf, Zeit, Speicherung und Offline-Neuladen. Bildschirmaufnahmen dienen zusätzlich der visuellen Prüfung.
+Ausschließlich Playwright mit ausführbaren Gherkin-Szenarien prüft das Verhalten. Es gibt keine Unit- oder Komponententest-Suite. Tests öffnen den Produktionsbuild, bedienen sichtbare Elemente und prüfen Pflege, Schlaf, Zeit, Speicherung und Offline-Neuladen. Weitere Szenarien prüfen Sprache, tatsächliche Farbänderungen im 3D-Bild, gespeicherte Einstellungen, Tastaturbedienung, mehrere Tabs und nicht verfügbaren Speicher. Bildschirmaufnahmen dienen zusätzlich der visuellen Prüfung.

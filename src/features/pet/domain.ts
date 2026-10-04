@@ -19,10 +19,12 @@ export const petSnapshotSchema = z
 
 export type PetSnapshot = z.infer<typeof petSnapshotSchema>
 export type CareAction = 'feed' | 'play' | 'sleep' | 'wake' | 'pet'
+export type CareMessage =
+  CareAction | 'sleeping' | 'tired' | 'alreadySleeping' | 'alreadyAwake'
 export type CareResult = {
   pet: PetSnapshot
   accepted: boolean
-  message: string
+  message: CareMessage
 }
 
 const clamp = (value: number) => Math.min(100, Math.max(0, value))
@@ -62,14 +64,14 @@ export function careForPet(
     return {
       pet,
       accepted: false,
-      message: 'Psst … Pinchy schläft. Wecke ihn zuerst sanft auf.',
+      message: 'sleeping',
     }
   }
   if (action === 'play' && pet.energy < 10) {
     return {
       pet,
       accepted: false,
-      message: 'Pinchy ist zu müde zum Spielen. Ein Nickerchen hilft.',
+      message: 'tired',
     }
   }
   if (
@@ -79,9 +81,7 @@ export function careForPet(
     return {
       pet,
       accepted: false,
-      message: pet.sleeping
-        ? 'Pinchy schlummert schon gemütlich.'
-        : 'Pinchy ist schon wach und freut sich auf dich.',
+      message: pet.sleeping ? 'alreadySleeping' : 'alreadyAwake',
     }
   }
   const cared = { ...pet, careCount: pet.careCount + 1 }
@@ -90,7 +90,7 @@ export function careForPet(
       return {
         pet: { ...cared, fullness: clamp(pet.fullness + 20) },
         accepted: true,
-        message: 'Mmmh! Pinchy hat seinen Snack verputzt.',
+        message: 'feed',
       }
     case 'play':
       return {
@@ -100,25 +100,25 @@ export function careForPet(
           energy: clamp(pet.energy - 10),
         },
         accepted: true,
-        message: 'Juhu! Eine Runde Spielen macht Pinchy glücklich.',
+        message: 'play',
       }
     case 'pet':
       return {
         pet: { ...cared, happiness: clamp(pet.happiness + 5) },
         accepted: true,
-        message: 'Kleine Streicheleinheit, großes Hamsterglück.',
+        message: 'pet',
       }
     case 'sleep':
       return {
         pet: { ...cared, sleeping: true },
         accepted: true,
-        message: 'Gute Nacht, Pinchy. Beim Schlafen tankst du neue Energie.',
+        message: 'sleep',
       }
     case 'wake':
       return {
         pet: { ...cared, sleeping: false },
         accepted: true,
-        message: 'Guten Morgen! Pinchy ist wieder für dich da.',
+        message: 'wake',
       }
   }
 }

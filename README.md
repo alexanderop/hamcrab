@@ -24,6 +24,8 @@ Füttern erhöht die Sättigung. Spielen verbessert die Freude und verbraucht En
 
 Die Bedürfnisse verändern sich mit vergangener Zeit. Pro Berechnung zählen höchstens 24 Stunden. Pinchy stirbt nicht bei längerer Abwesenheit. IndexedDB speichert den Spielstand auf diesem Browserprofil. Das Löschen der Browserdaten löscht auch den Spielstand.
 
+Das Zahnrad im Display öffnet die Einstellungen. Englisch ist die Standardsprache; Deutsch lässt sich jederzeit auswählen. Gehäuse und Krabbenkostüm haben jeweils vier unabhängige Farbvarianten. Die Auswahl wird sofort angewendet und lokal gespeichert, auch offline. Gespeicherte Pflegewerte bleiben beim Ändern der Einstellungen erhalten.
+
 Nach einem vollständigen ersten Laden speichert der Service Worker die Anwendung für Offline-Besuche. Die Installation hängt vom Browser ab. Die Installation erfolgt über das Browsermenü. Es gibt keinen Server und keine externen Laufzeitressourcen.
 
 ## Prüfen

@@ -2,9 +2,17 @@
 import { onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import * as THREE from 'three'
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
-import { createCreature, type CreatureReaction } from './creature'
+import {
+  createCreature,
+  type CostumePalette,
+  type CreatureReaction,
+} from './creature'
 
 const props = defineProps<{
+  palette: CostumePalette
+  description: string
+  fallbackTitle: string
+  fallbackDescription: string
   sleeping: boolean
   reaction: CreatureReaction
   reactionId: number
@@ -52,6 +60,11 @@ onMounted(() => {
     controls.rotateSpeed = 0.6
     controls.update()
     const creature = createCreature()
+    creature.setPalette(props.palette)
+    const stopPaletteWatch = watch(
+      () => props.palette,
+      (palette) => creature.setPalette(palette),
+    )
     scene.add(creature.root)
     scene.add(new THREE.HemisphereLight('#fff0df', '#99a888', 1.25))
     const key = new THREE.DirectionalLight('#fff0db', 3.1)
@@ -218,11 +231,13 @@ onMounted(() => {
     }
     const contextLost = (event: Event) => {
       event.preventDefault()
+      stopPaletteWatch()
       cancelAnimationFrame(frame)
       status.value = 'fallback'
     }
     renderer.domElement.addEventListener('webglcontextlost', contextLost)
     cleanup = () => {
+      stopPaletteWatch()
       cancelAnimationFrame(frame)
       observer.disconnect()
       controls.dispose()
@@ -260,7 +275,7 @@ onBeforeUnmount(() => cleanup?.())
     class="habitat-scene"
     :data-renderer="status"
     role="img"
-    aria-label="Pinchy, ein Hamster im roten Hummerkostüm. Mit Ziehen oder den Pfeiltasten drehen."
+    :aria-label="description"
     tabindex="0"
     @keydown.left.prevent="rotate(-1)"
     @keydown.right.prevent="rotate(1)"
@@ -268,9 +283,7 @@ onBeforeUnmount(() => cleanup?.())
     <div v-if="status === 'fallback'" class="habitat-fallback">
       <span aria-hidden="true">🐹</span>
       <p>
-        Pinchy ist hier.<br /><small
-          >Die 3D-Ansicht ist auf diesem Gerät nicht verfügbar.</small
-        >
+        {{ fallbackTitle }}<br /><small>{{ fallbackDescription }}</small>
       </p>
     </div>
   </div>

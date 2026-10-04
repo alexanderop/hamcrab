@@ -1,7 +1,10 @@
 import * as THREE from 'three'
 
 export type CreatureReaction = 'idle' | 'feed' | 'play' | 'pet'
+export type CostumePalette = { base: string; light: string; shade: string }
+
 export interface CreatureRig {
+  setPalette: (palette: CostumePalette) => void
   root: THREE.Group
   head: THREE.Group
   eyes: THREE.Group[]
@@ -421,5 +424,20 @@ export function createCreature(): CreatureRig {
     ).rotation.y = side * 0.6
   }
   ball(root, materials.shell, [0, 0.33, -0.68], [0.28, 0.21, 0.48])
-  return { root, head, eyes, lids, closedEyes, antennae, brows, paws, claws }
+  return {
+    root,
+    head,
+    eyes,
+    lids,
+    closedEyes,
+    antennae,
+    brows,
+    paws,
+    claws,
+    setPalette(palette) {
+      materials.shell.color.set(palette.base)
+      materials.coral.color.set(palette.light)
+      materials.darkRed.color.set(palette.shade)
+    },
+  }
 }
