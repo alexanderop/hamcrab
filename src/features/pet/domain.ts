@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { foods, type FoodId } from './foods'
 
 const meter = z.number().finite().min(0).max(100)
 
@@ -18,9 +19,15 @@ export const petSnapshotSchema = z
   .refine((pet) => pet.updatedAt >= pet.createdAt)
 
 export type PetSnapshot = z.infer<typeof petSnapshotSchema>
-export type CareAction = 'feed' | 'play' | 'sleep' | 'wake' | 'pet'
+export type CareAction =
+  { type: 'feed'; food: FoodId } | { type: 'play' | 'sleep' | 'wake' | 'pet' }
 export type CareMessage =
-  CareAction | 'sleeping' | 'tired' | 'alreadySleeping' | 'alreadyAwake'
+  | Exclude<CareAction['type'], 'feed'>
+  | FoodId
+  | 'sleeping'
+  | 'tired'
+  | 'alreadySleeping'
+  | 'alreadyAwake'
 export type CareResult = {
   pet: PetSnapshot
   accepted: boolean
@@ -60,14 +67,14 @@ export function careForPet(
   now: number,
 ): CareResult {
   const pet = advancePet(snapshot, now)
-  if (pet.sleeping && action !== 'wake' && action !== 'sleep') {
+  if (pet.sleeping && action.type !== 'wake' && action.type !== 'sleep') {
     return {
       pet,
       accepted: false,
       message: 'sleeping',
     }
   }
-  if (action === 'play' && pet.energy < 10) {
+  if (action.type === 'play' && pet.energy < 10) {
     return {
       pet,
       accepted: false,
@@ -75,8 +82,8 @@ export function careForPet(
     }
   }
   if (
-    (action === 'sleep' && pet.sleeping) ||
-    (action === 'wake' && !pet.sleeping)
+    (action.type === 'sleep' && pet.sleeping) ||
+    (action.type === 'wake' && !pet.sleeping)
   ) {
     return {
       pet,
@@ -85,13 +92,20 @@ export function careForPet(
     }
   }
   const cared = { ...pet, careCount: pet.careCount + 1 }
-  switch (action) {
-    case 'feed':
+  switch (action.type) {
+    case 'feed': {
+      const food = foods[action.food]
       return {
-        pet: { ...cared, fullness: clamp(pet.fullness + 20) },
+        pet: {
+          ...cared,
+          fullness: clamp(pet.fullness + food.fullness),
+          happiness: clamp(pet.happiness + food.happiness),
+          energy: clamp(pet.energy + food.energy),
+        },
         accepted: true,
-        message: 'feed',
+        message: action.food,
       }
+    }
     case 'play':
       return {
         pet: {

@@ -8,6 +8,8 @@ Hamcrab ist eine eigenständige Vue-PWA. Pinchy ist der Name des Haustiers.
 
 `features/habitat` besitzt das prozedurale Three.js-Modell, die Kamera, Animationen und GPU-Ressourcen. Es erhält ausschließlich Darstellungsdaten. Es verändert keine Spielwerte.
 
+Die Nahrungsmitteltabelle in `features/pet/foods.ts` definiert die Effekte. Pflegeaktionen sind eine Union, in der Füttern immer eine konkrete Auswahl enthält. Das Futtermenü zeigt eine von `App.vue` eingesetzte 3D-Vorschau. `features/habitat/snacks.ts` erzeugt die drei Geometrien und das Flaschenetikett lokal. Die Vorschau rendert bei Änderungen; beim Schließen gibt sie Geometrien, Materialien, Texturen und ihren WebGL-Kontext frei. Die Fütterungsanimation nutzt dieselben Modelle im Lebensraum. Das Schema bestehender Spielstände bleibt unverändert.
+
 `features/settings` besitzt Sprache, Farbpaletten, Übersetzungen und den Einstellungsdialog. Die kleinen Präferenzen liegen getrennt vom Spielstand im lokalen Browserspeicher und werden mit Zod validiert. Neue Besuche starten auf Englisch. Nicht lesbare Präferenzen verwenden Standardwerte, ohne den Spielstand zu verändern. Speicherfehler werden als vorübergehende Auswahl angezeigt. Andere Tabs übernehmen Änderungen über das Storage-Ereignis.
 
 Pflegeergebnisse liefern sprachunabhängige Meldungsschlüssel. `App.vue` übersetzt diese und reicht die ausgewählte Palette und Beschreibung an die 3D-Ansicht weiter. Die Ansicht ändert vorhandene Materialien, ohne Geometrie oder Kamera neu anzulegen.

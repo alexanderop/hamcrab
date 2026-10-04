@@ -14,6 +14,11 @@ import {
 } from '@lucide/vue'
 import HabitatScene from './features/habitat/HabitatScene.vue'
 import { usePetSession } from './features/pet/usePetSession'
+import type { CareAction } from './features/pet/domain'
+import type { FoodId } from './features/pet/foods'
+import FoodMenu from './features/pet/FoodMenu.vue'
+import SnackPreview from './features/habitat/SnackPreview.vue'
+import type { SnackKind } from './features/habitat/snacks'
 
 import SettingsPanel from './features/settings/SettingsPanel.vue'
 import { useSettings } from './features/settings/useSettings'
@@ -34,6 +39,21 @@ watchEffect(() => {
 const { pet, ready, busy, error, message, saved, care, retry } = usePetSession()
 const reaction = ref<'idle' | 'feed' | 'play' | 'pet'>('idle')
 const reactionId = ref(0)
+const selectedFood = ref<FoodId>('franzbroetchen')
+const servedSnack = ref<SnackKind | null>(null)
+const foodMenu = ref<InstanceType<typeof FoodMenu>>()
+const snackKinds: Record<FoodId, SnackKind> = {
+  franzbroetchen: 'pastry',
+  doener: 'kebab',
+  augustiner: 'bottle',
+}
+const foodNotice = computed(() =>
+  error.value
+    ? text.value.errors[error.value]
+    : pet.value.sleeping
+      ? text.value.reactions.sleeping
+      : null,
+)
 const online = ref(navigator.onLine)
 const level = computed(() => Math.floor(pet.value.careCount / 5) + 1)
 const needs = computed(() => [
@@ -53,12 +73,19 @@ const needs = computed(() => [
     icon: BatteryMedium,
   },
 ])
-async function act(action: 'feed' | 'play' | 'sleep' | 'wake' | 'pet') {
-  const accepted = await care(action)
+async function act(action: Exclude<CareAction['type'], 'feed'>) {
+  const accepted = await care({ type: action })
   if (!accepted) return
-  reaction.value =
-    action === 'feed' || action === 'play' || action === 'pet' ? action : 'idle'
+  reaction.value = action === 'play' || action === 'pet' ? action : 'idle'
   reactionId.value++
+}
+async function feed(food: FoodId) {
+  const accepted = await care({ type: 'feed', food })
+  if (!accepted) return
+  servedSnack.value = snackKinds[food]
+  reaction.value = 'feed'
+  reactionId.value++
+  foodMenu.value?.close()
 }
 function updateOnline() {
   online.value = navigator.onLine
@@ -145,6 +172,7 @@ onUnmounted(() => {
                 :fallback-description="text.no3d"
                 :sleeping="pet.sleeping"
                 :reaction="reaction"
+                :snack="servedSnack"
                 :reaction-id="reactionId"
               /><span class="scene-caption">{{
                 pet.sleeping ? 'Z z z …' : text.hello
@@ -187,7 +215,7 @@ onUnmounted(() => {
               class="care-button"
               :aria-label="text.feed"
               :disabled="!ready || busy || !!error || pet.sleeping"
-              @click="act('feed')"
+              @click="foodMenu?.open()"
             >
               <Utensils :size="26" /></button
             ><span>{{ text.feed }}</span
@@ -222,6 +250,22 @@ onUnmounted(() => {
           <span>♡</span><i /><i /><i /><span>♡</span>
         </div>
       </div>
+      <FoodMenu
+        ref="foodMenu"
+        :selected="selectedFood"
+        :disabled="!ready || busy || !!error || pet.sleeping"
+        :notice="foodNotice"
+        :text="text.food"
+        :meters="text"
+        @select="selectedFood = $event"
+        @give="feed"
+      >
+        <SnackPreview
+          :kind="snackKinds[selectedFood]"
+          :label="text.food.names[selectedFood]"
+          :fallback="text.no3d"
+        />
+      </FoodMenu>
       <SettingsPanel
         ref="settingsPanel"
         :preferences="preferences"

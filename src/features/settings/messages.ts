@@ -36,9 +36,22 @@ export const messages = {
     settingsUnsaved:
       'These settings could not be saved. They apply until you close the app.',
     colors: { coral: 'Coral', mint: 'Mint', lavender: 'Lilac', ocean: 'Ocean' },
+    food: {
+      title: 'Snack time',
+      choose: 'What would Pinchy like?',
+      close: 'Close food menu',
+      give: 'Give to Pinchy',
+      names: {
+        franzbroetchen: 'Franzbrötchen',
+        doener: 'Döner kebab',
+        augustiner: 'Augustiner beer',
+      },
+    },
     reactions: {
       welcome: 'Glad you’re here. Pinchy is waiting for you!',
-      feed: 'Mmm! Pinchy finished his snack.',
+      franzbroetchen: 'Mmm! Pinchy loved his Franzbrötchen.',
+      doener: 'A Döner feast! Pinchy is full and happy.',
+      augustiner: 'Prost! An Augustiner for Pinchy.',
       play: 'Hooray! Playing makes Pinchy happy.',
       pet: 'A little cuddle, a very happy hamster.',
       sleep: 'Good night, Pinchy. Sleep brings fresh energy.',
@@ -96,9 +109,22 @@ export const messages = {
       lavender: 'Flieder',
       ocean: 'Ozean',
     },
+    food: {
+      title: 'Hunger?',
+      choose: 'Was mag Pinchy heute?',
+      close: 'Futtermenü schließen',
+      give: 'Pinchy geben',
+      names: {
+        franzbroetchen: 'Franzbrötchen',
+        doener: 'Döner',
+        augustiner: 'Augustiner-Bier',
+      },
+    },
     reactions: {
       welcome: 'Schön, dass du da bist. Pinchy wartet auf dich!',
-      feed: 'Mmmh! Pinchy hat seinen Snack verputzt.',
+      franzbroetchen: 'Mmmh! Pinchy liebt sein Franzbrötchen.',
+      doener: 'Dönerzeit! Pinchy ist satt und glücklich.',
+      augustiner: 'Prost! Ein Augustiner für Pinchy.',
       play: 'Juhu! Eine Runde Spielen macht Pinchy glücklich.',
       pet: 'Kleine Streicheleinheit, großes Hamsterglück.',
       sleep: 'Gute Nacht, Pinchy. Beim Schlafen tankst du neue Energie.',

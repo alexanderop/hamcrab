@@ -22,6 +22,8 @@ pnpm preview
 
 Füttern erhöht die Sättigung. Spielen verbessert die Freude und verbraucht Energie. Streicheln verbessert die Freude. Schlafen stellt Energie wieder her, während aktive Pflege pausiert. Wecken beendet den Schlaf. Fünf Pflegeaktionen erhöhen das Freundschaftslevel.
 
+Beim Füttern öffnet sich eine Auswahl mit drehbaren Three.js-Modellen. Franzbrötchen gibt 20 Sättigung, Döner gibt 30 Sättigung und 5 Freude, Augustiner-Bier gibt 5 Sättigung und 10 Freude und verbraucht 5 Energie. Erst „Pinchy geben“ speichert die Pflegeaktion und lässt Pinchy das gewählte Modell halten. Abbrechen verändert den Spielstand nicht. Auswahl und Modelle funktionieren offline und auf Deutsch oder Englisch.
+
 Die Bedürfnisse verändern sich mit vergangener Zeit. Pro Berechnung zählen höchstens 24 Stunden. Pinchy stirbt nicht bei längerer Abwesenheit. IndexedDB speichert den Spielstand auf diesem Browserprofil. Das Löschen der Browserdaten löscht auch den Spielstand.
 
 Das Zahnrad im Display öffnet die Einstellungen. Englisch ist die Standardsprache; Deutsch lässt sich jederzeit auswählen. Gehäuse und Krabbenkostüm haben jeweils vier unabhängige Farbvarianten. Die Auswahl wird sofort angewendet und lokal gespeichert, auch offline. Gespeicherte Pflegewerte bleiben beim Ändern der Einstellungen erhalten.

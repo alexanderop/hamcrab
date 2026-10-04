@@ -2,6 +2,8 @@
 import { onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import * as THREE from 'three'
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
+import { createSnack, type SnackKind } from './snacks'
+import { disposeObject } from './disposeObject'
 import {
   createCreature,
   type CostumePalette,
@@ -16,9 +18,11 @@ const props = defineProps<{
   sleeping: boolean
   reaction: CreatureReaction
   reactionId: number
+  snack: SnackKind | null
 }>()
 const emit = defineEmits<{ ready: [] }>()
 const host = ref<HTMLDivElement>()
+const activeSnack = ref<SnackKind | null>(null)
 const status = ref<'loading' | 'ready' | 'fallback'>('loading')
 let cleanup: (() => void) | undefined
 let react = () => {}
@@ -64,6 +68,18 @@ onMounted(() => {
     const stopPaletteWatch = watch(
       () => props.palette,
       (palette) => creature.setPalette(palette),
+    )
+    const snackHolder = new THREE.Group()
+    snackHolder.visible = false
+    creature.root.add(snackHolder)
+    const stopSnackWatch = watch(
+      () => props.snack,
+      (kind) => {
+        disposeObject(snackHolder)
+        snackHolder.clear()
+        if (kind) snackHolder.add(createSnack(kind))
+      },
+      { immediate: true },
     )
     scene.add(creature.root)
     scene.add(new THREE.HemisphereLight('#fff0df', '#99a888', 1.25))
@@ -133,8 +149,32 @@ onMounted(() => {
       if (!renderer || !scene) return
       const time = clock.getElapsedTime()
       const age = time - reactionStart
-      const reacting = age < 1.5 && !reducedMotion.matches && !props.sleeping
-      const energy = reacting ? Math.sin(Math.min(age / 1.5, 1) * Math.PI) : 0
+      const duration = props.reaction === 'feed' ? 3.4 : 1.5
+      const reacting =
+        age < duration && !reducedMotion.matches && !props.sleeping
+      const energy = reacting
+        ? Math.sin(Math.min(age / duration, 1) * Math.PI)
+        : 0
+      const serving =
+        props.snack &&
+        props.reaction === 'feed' &&
+        age >= 0 &&
+        age < duration &&
+        !props.sleeping
+      activeSnack.value = serving ? props.snack : null
+      snackHolder.visible = !!serving
+      if (serving) {
+        const lift = reducedMotion.matches
+          ? 0
+          : Math.sin((Math.min(age / 1.1, 1) * Math.PI) / 2)
+        const nibble =
+          reducedMotion.matches || props.snack === 'bottle'
+            ? 1
+            : 1 - Math.max(0, age - 1.6) * 0.25
+        snackHolder.position.set(0, 1.17 + lift * 0.24, 1.03)
+        snackHolder.rotation.z = props.snack === 'bottle' ? -lift * 0.6 : 0
+        snackHolder.scale.setScalar(0.5 * nibble)
+      }
       const idle = reducedMotion.matches
         ? 0
         : Math.sin(time * (props.sleeping ? 1.15 : 1.45))
@@ -232,28 +272,19 @@ onMounted(() => {
     const contextLost = (event: Event) => {
       event.preventDefault()
       stopPaletteWatch()
+      stopSnackWatch()
       cancelAnimationFrame(frame)
       status.value = 'fallback'
     }
     renderer.domElement.addEventListener('webglcontextlost', contextLost)
     cleanup = () => {
       stopPaletteWatch()
+      stopSnackWatch()
       cancelAnimationFrame(frame)
       observer.disconnect()
       controls.dispose()
       renderer?.domElement.removeEventListener('webglcontextlost', contextLost)
-      const geometries = new Set<THREE.BufferGeometry>()
-      const materials = new Set<THREE.Material>()
-      scene?.traverse((object) => {
-        if (object instanceof THREE.Mesh) {
-          geometries.add(object.geometry)
-          if (Array.isArray(object.material))
-            object.material.forEach((material) => materials.add(material))
-          else materials.add(object.material)
-        }
-      })
-      geometries.forEach((geometry) => geometry.dispose())
-      materials.forEach((material) => material.dispose())
+      if (scene) disposeObject(scene)
       key.shadow.dispose()
       renderer?.dispose()
       renderer?.domElement.remove()
@@ -274,6 +305,7 @@ onBeforeUnmount(() => cleanup?.())
     ref="host"
     class="habitat-scene"
     :data-renderer="status"
+    :data-snack="activeSnack"
     role="img"
     :aria-label="description"
     tabindex="0"

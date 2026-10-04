@@ -1,4 +1,5 @@
 import { createBdd } from 'playwright-bdd'
+import { FoodMenuPage } from './pages/food-menu'
 import { expect, type Page } from '@playwright/test'
 const { Given, When, Then } = createBdd()
 async function visit(page: Page) {
@@ -58,9 +59,9 @@ Then(
   },
 )
 When('I feed Pinchy', async ({ page }) => {
-  await page.getByRole('button', { name: 'Feed' }).click()
+  await new FoodMenuPage(page).feed()
   await expect(
-    page.getByText('Mmm! Pinchy finished his snack.', { exact: true }),
+    page.getByText('Mmm! Pinchy loved his Franzbrötchen.', { exact: true }),
   ).toBeVisible()
 })
 When('I play with Pinchy', async ({ page }) => {
@@ -144,12 +145,14 @@ When('I care for Pinchy from two tabs', async ({ page, context }) => {
   const second = await context.newPage()
   await second.goto('./', { waitUntil: 'domcontentloaded' })
   await expect(second.getByRole('button', { name: 'Feed' })).toBeEnabled()
+  const menu = new FoodMenuPage(page)
+  await menu.open()
   await Promise.all([
-    page.getByRole('button', { name: 'Feed' }).click(),
+    menu.give(),
     second.getByRole('button', { name: 'Play' }).click(),
   ])
   await expect(
-    page.getByText('Mmm! Pinchy finished his snack.', { exact: true }),
+    page.getByText('Mmm! Pinchy loved his Franzbrötchen.', { exact: true }),
   ).toBeVisible()
   await expect(
     second.getByText('Hooray! Playing makes Pinchy happy.', {
@@ -162,6 +165,15 @@ When('I feed Pinchy using the keyboard', async ({ page }) => {
   const button = page.getByRole('button', { name: 'Feed' })
   await button.focus()
   await page.keyboard.press('Enter')
+  await expect(
+    page.getByRole('button', { name: 'Close food menu' }),
+  ).toBeFocused()
+  await page.keyboard.press('Tab')
+  await page.keyboard.press('Tab')
+  await expect(page.getByRole('radio', { name: 'Franzbrötchen' })).toBeFocused()
+  await page.keyboard.press('Tab')
+  await page.keyboard.press('Enter')
+  await expect(page.getByRole('dialog')).not.toBeVisible()
   await expect(page.getByRole('status')).toContainText('saved')
 })
 Then('my home fits the screen', async ({ page }) => {
@@ -223,7 +235,7 @@ Then(
 )
 When('I feed Pinchy three times', async ({ page }) => {
   for (let i = 0; i < 3; i++) {
-    await page.getByRole('button', { name: 'Feed' }).click()
+    await new FoodMenuPage(page).feed()
     await expect(page.getByRole('status')).toContainText('saved')
   }
 })
@@ -249,7 +261,13 @@ When('I reopen a damaged home', async ({ page }) => {
   await page.reload()
 })
 When('I attempt to feed Pinchy', async ({ page }) => {
-  await page.getByRole('button', { name: 'Feed' }).click()
+  const menu = new FoodMenuPage(page)
+  await menu.open()
+  await menu.give()
+  await expect(menu.dialog.getByRole('alert')).toContainText(
+    'It has not been changed',
+  )
+  await menu.close()
 })
 
 Then(

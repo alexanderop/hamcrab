@@ -111,7 +111,7 @@ Then('the current care message and controls speak German', async ({ page }) => {
   await expect(page.locator('html')).toHaveAttribute('lang', 'de')
   await expect(page.getByRole('button', { name: 'Füttern' })).toBeEnabled()
   await expect(
-    page.getByText('Mmmh! Pinchy hat seinen Snack verputzt.', { exact: true }),
+    page.getByText('Mmmh! Pinchy liebt sein Franzbrötchen.', { exact: true }),
   ).toBeVisible()
   await expect(page.getByRole('status')).toContainText(
     'Euer Spielstand ist gespeichert',
