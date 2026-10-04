@@ -12,7 +12,12 @@ import {
   WifiOff,
   Settings,
 } from '@lucide/vue'
-import { HabitatScene, SnackPreview, type SnackKind } from '../features/habitat'
+import {
+  HabitatScene,
+  SnackPreview,
+  type SnackKind,
+  type CareCue,
+} from '../features/habitat'
 import {
   usePetSession,
   friendshipView,
@@ -48,10 +53,9 @@ watchEffect(() => {
     ?.setAttribute('content', palettes[preferences.value.caseColor].base)
 })
 
-const reaction = ref<'idle' | 'feed' | 'play' | 'pet'>('idle')
-const reactionId = ref(0)
+const reaction = ref<CareCue | null>(null)
+let reactionId = 0
 const selectedFood = ref<FoodId>('franzbroetchen')
-const servedSnack = ref<SnackKind | null>(null)
 const foodMenu = ref<InstanceType<typeof FoodMenu>>()
 const snackKinds: Record<FoodId, SnackKind> = {
   franzbroetchen: 'pastry',
@@ -86,6 +90,7 @@ const sceneDescription = computed(() =>
   ].join(' '),
 )
 async function careWithCelebration(action: CareAction) {
+  if (!ready.value || busy.value || error.value) return false
   const before = friendship.value
   const day = pet.value.friendship.daily.day
   const accepted = await care(action)
@@ -103,6 +108,19 @@ async function careWithCelebration(action: CareAction) {
     (!before.wish.complete || day !== pet.value.friendship.daily.day)
   )
     celebration.value += ` ${text.value.friendship.wishDone}.`
+  const celebrate =
+    after.level > before.level ||
+    (after.wish.complete &&
+      (!before.wish.complete || day !== pet.value.friendship.daily.day))
+  reaction.value =
+    action.type === 'feed'
+      ? {
+          id: ++reactionId,
+          kind: 'feed',
+          snack: snackKinds[action.food],
+          celebrate,
+        }
+      : { id: ++reactionId, kind: action.type, celebrate }
   return true
 }
 const needs = computed(() => [
@@ -123,17 +141,11 @@ const needs = computed(() => [
   },
 ])
 async function act(action: Exclude<CareAction['type'], 'feed'>) {
-  const accepted = await careWithCelebration({ type: action })
-  if (!accepted) return
-  reaction.value = action === 'play' || action === 'pet' ? action : 'idle'
-  reactionId.value++
+  await careWithCelebration({ type: action })
 }
 async function feed(food: FoodId) {
   const accepted = await careWithCelebration({ type: 'feed', food })
   if (!accepted) return
-  servedSnack.value = snackKinds[food]
-  reaction.value = 'feed'
-  reactionId.value++
   foodMenu.value?.close()
 }
 function updateOnline() {
@@ -235,8 +247,9 @@ onUnmounted(() => {
                 :fallback-description="text.no3d"
                 :sleeping="pet.sleeping"
                 :reaction="reaction"
-                :snack="servedSnack"
-                :reaction-id="reactionId"
+                :loaded="ready"
+                :available="ready && !busy && !error"
+                @pet="act('pet')"
               /><span class="scene-caption">{{
                 pet.sleeping ? text.sweetDreams : text.hello
               }}</span>

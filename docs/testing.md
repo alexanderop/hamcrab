@@ -61,3 +61,11 @@ VITE_BASE_PATH=/hamcrab/ pnpm test:compat
 CI führt alle Schichten aus, bevor der Build veröffentlicht werden darf. Browser-Fehlerbilder und Traces werden als Artefakte gesichert. Die bestehenden Layout-/Rendering-Prüfungen sind funktionale beziehungsweise gezielte visuelle Nachweise, keine vollständigen Screenshot-Baselines.
 
 Konfigurationsreferenzen: [Vitest Browser Mode](https://vitest.dev/guide/browser/), [Oxlint JS Plugins](https://oxc.rs/docs/guide/usage/linter/writing-js-plugins.html).
+
+## Persönlichkeit und direkte Berührung
+
+`tests/unit/animation.test.ts` prüft den rein numerischen Animationscontroller: einmalige Begrüßung nach geladenem Spielstand, verzögerte Rückkehr nach mindestens 30 Sekunden Abwesenheit und abgeschlossener Aktualisierung, unterbrechbare Pflege mit anschließender Belohnung, Schlaf, deterministische Varianten und ruhige Pausen. Bewegungsreduktion beendet laufende Bewegungen ohne spätere Wiederholung; statisches Snack-Feedback läuft weiter bis zum ursprünglichen Ablauf. Gestenregeln prüfen Körperkontakt beim Beginn und Ende, maximale Bewegung einschließlich Hin-und-zurück-Ziehen, Abbruch und mehrere Zeiger. Keine Uhr oder Browser-API wird dafür ersetzt.
+
+`tests/e2e/animation.feature` prüft die Verdrahtung mit echter Speicherung und WebGL: direkte Berührung speichert genau eine Pflege, Ziehen speichert keine, Futter geht dem Tanz voraus, Wecken streckt das Tier und der Ball kehrt nach dem Spielen zurück. Die Playwright-Uhr ermöglicht reproduzierbare Phasen; Canvas-Bilder werden verglichen und als `test-results/personality-*.png` gespeichert. Ruhendes Snack-Feedback muss identische Pixel behalten. Begrüßung, Kuscheln, Fressen, Tanz, Aufwachen und Beschäftigung werden zusätzlich visuell geprüft; Attribute allein reichen dafür nicht aus. Die vorhandene Rotationsprüfung erhält den Nachweis der Tastaturbedienung.
+
+Die Rückkehr-Journey speichert Schlaf über einen zweiten echten App-Tab und hält die echte IndexedDB-Lesetransaktion kurz hinter einer Schreibtransaktion zurück. Sie prüft, dass während der Aktualisierung keine Begrüßung mit veraltetem Wachzustand startet. Nur die Sichtbarkeitseigenschaften und das Ereignis werden im Test kontrolliert, weil Headless-Tabs keinen nativen Sichtbarkeitswechsel liefern; Pflege, Speicherung, Vue-Aktualisierung und Rendering bleiben echt.
