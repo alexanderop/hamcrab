@@ -8,7 +8,20 @@ import { disposeObject } from '../three/disposeObject'
 import { createRewards } from '../three/rewards'
 import { createCreature } from '../three/creature'
 import { createSleepNest } from '../three/sleepNest'
-import type { CostumePalette, CreatureReaction } from '../scene-types'
+import type { CostumePalette, CareCue } from '../scene-types'
+import {
+  initialAnimation,
+  updateEnvironment,
+  acceptCue,
+  sampleAnimation,
+  type Motion,
+} from '../domain/animation'
+import {
+  beginPetGesture,
+  movePetGesture,
+  completesPetGesture,
+  type PetGesture,
+} from '../domain/petGesture'
 
 const props = defineProps<{
   ribbon: boolean
@@ -19,13 +32,14 @@ const props = defineProps<{
   fallbackTitle: string
   fallbackDescription: string
   sleeping: boolean
-  reaction: CreatureReaction
-  reactionId: number
-  snack: SnackKind | null
+  reaction: CareCue | null
+  loaded: boolean
+  available: boolean
 }>()
-const emit = defineEmits<{ ready: [] }>()
+const emit = defineEmits<{ ready: []; pet: [] }>()
 const host = ref<HTMLDivElement>()
 const ballPlaying = ref(false)
+const motion = ref<Motion>('idle')
 const activeSnack = ref<SnackKind | null>(null)
 const status = ref<'loading' | 'ready' | 'fallback'>('loading')
 const stars = [
@@ -42,7 +56,7 @@ let cleanup: (() => void) | undefined
 let react = () => {}
 let rotate = (_direction: number) => {}
 watch(
-  () => props.reactionId,
+  () => props.reaction,
   () => react(),
 )
 
@@ -104,20 +118,9 @@ onMounted(() => {
         invalidate()
       },
     )
-    const stopSleepingWatch = watch(() => props.sleeping, invalidate)
     const snackHolder = new THREE.Group()
     snackHolder.visible = false
     creature.root.add(snackHolder)
-    const stopSnackWatch = watch(
-      () => props.snack,
-      (kind) => {
-        disposeObject(snackHolder)
-        snackHolder.clear()
-        if (kind) snackHolder.add(createSnack(kind))
-        invalidate()
-      },
-      { immediate: true },
-    )
     scene.add(creature.root)
     const ambient = new THREE.HemisphereLight('#fff0df', '#99a888', 1.25)
     scene.add(ambient)
@@ -180,45 +183,135 @@ onMounted(() => {
     observer.observe(element)
     resize()
     const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)')
-    reducedMotion.addEventListener('change', invalidate)
-    let reactionStart = -10
+    let animation = initialAnimation()
     const clock = new THREE.Clock()
     let frame = 0
     let ready = false
     let sleepBlend = props.sleeping ? 1 : 0
     let previousTime = 0
-    react = () => {
-      reactionStart = clock.getElapsedTime()
+    const syncEnvironment = () => {
+      animation = updateEnvironment(
+        animation,
+        {
+          loaded: ready && props.loaded,
+          available: props.available,
+          sleeping: props.sleeping,
+          visible: !document.hidden,
+          reduced: reducedMotion.matches,
+        },
+        clock.getElapsedTime(),
+      )
       invalidate()
     }
+    const stopEnvironmentWatch = watch(
+      () => [props.loaded, props.available, props.sleeping],
+      syncEnvironment,
+    )
+    let pendingVisibilitySync = false
+    const visibilityChanged = () => {
+      gesture = null
+      pendingVisibilitySync = !document.hidden
+      if (document.hidden) syncEnvironment()
+      invalidate()
+    }
+    document.addEventListener('visibilitychange', visibilityChanged)
+    reducedMotion.addEventListener('change', syncEnvironment)
+    react = () => {
+      syncEnvironment()
+      if (props.reaction)
+        animation = acceptCue(animation, props.reaction, clock.getElapsedTime())
+      invalidate()
+    }
+    const raycaster = new THREE.Raycaster()
+    const pointer = new THREE.Vector2()
+    const canvas = renderer.domElement
+    let gesture: PetGesture | null = null
+    const hitCreature = (event: PointerEvent) => {
+      const bounds = canvas.getBoundingClientRect()
+      pointer.set(
+        ((event.clientX - bounds.left) / bounds.width) * 2 - 1,
+        (-(event.clientY - bounds.top) / bounds.height) * 2 + 1,
+      )
+      raycaster.setFromCamera(pointer, camera)
+      return raycaster.intersectObject(creature.root, true).some((hit) => {
+        let object: THREE.Object3D | null = hit.object
+        while (object) {
+          if (object === snackHolder || object === rewards.ribbon) return false
+          object = object.parent
+        }
+        return true
+      })
+    }
+    const pointerDown = (event: PointerEvent) => {
+      gesture = beginPetGesture(gesture, {
+        pointer: event.pointerId,
+        x: event.clientX,
+        y: event.clientY,
+        primary: event.isPrimary && event.button === 0,
+        hit: hitCreature(event),
+      })
+    }
+    const pointerMove = (event: PointerEvent) => {
+      if (gesture)
+        gesture = movePetGesture(
+          gesture,
+          event.pointerId,
+          event.clientX,
+          event.clientY,
+        )
+    }
+    const pointerUp = (event: PointerEvent) => {
+      pointerMove(event)
+      const pet = completesPetGesture(
+        gesture,
+        event.pointerId,
+        hitCreature(event),
+      )
+      gesture = null
+      if (pet && props.available && !props.sleeping) emit('pet')
+    }
+    const pointerCancel = () => {
+      gesture = null
+    }
+    canvas.addEventListener('pointerdown', pointerDown, true)
+    canvas.addEventListener('pointermove', pointerMove, true)
+    canvas.addEventListener('pointerup', pointerUp, true)
+    canvas.addEventListener('pointercancel', pointerCancel, true)
+    canvas.addEventListener('lostpointercapture', pointerCancel)
+
     rotate = (direction) => {
       creature.root.rotation.y += direction * 0.2
       invalidate()
     }
     const animate = () => {
       if (!renderer || !scene) return
+      if (pendingVisibilitySync) {
+        pendingVisibilitySync = false
+        syncEnvironment()
+      }
       const time = clock.getElapsedTime()
       const elapsed = Math.min(0.05, time - previousTime)
       previousTime = time
-      const age = time - reactionStart
-      const duration = props.reaction === 'feed' ? 3.4 : 1.5
-      const reacting =
-        age < duration && !reducedMotion.matches && !props.sleeping
-      const energy = reacting
-        ? Math.sin(Math.min(age / duration, 1) * Math.PI)
-        : 0
-      const serving =
-        props.snack &&
-        props.reaction === 'feed' &&
-        age >= 0 &&
-        age < duration &&
-        !props.sleeping
+      const sampled = sampleAnimation(animation, time)
+      motion.value = sampled.motion
+      const age = sampled.age
+      const energy = sampled.energy
+      const reacting = sampled.motion !== 'idle'
+      const serving = sampled.snack
       controls.update()
-      const nextSnack = serving ? props.snack : null
+      const nextSnack = serving
       const snackChanged = activeSnack.value !== nextSnack
-      if (reducedMotion.matches && !needsRender && !snackChanged) {
+      if (
+        (reducedMotion.matches && !needsRender && !snackChanged) ||
+        document.hidden
+      ) {
         frame = requestAnimationFrame(animate)
         return
+      }
+      if (snackChanged) {
+        disposeObject(snackHolder)
+        snackHolder.clear()
+        if (nextSnack) snackHolder.add(createSnack(nextSnack))
       }
       const targetSleep = props.sleeping ? 1 : 0
       sleepBlend = reducedMotion.matches
@@ -241,38 +334,40 @@ onMounted(() => {
           ? 0
           : Math.sin((Math.min(age / 1.1, 1) * Math.PI) / 2)
         const nibble =
-          reducedMotion.matches || props.snack === 'bottle'
+          reducedMotion.matches || serving === 'bottle'
             ? 1
             : 1 - Math.max(0, age - 1.6) * 0.25
-        snackHolder.position.set(0, 1.17 + lift * 0.24, 1.03)
-        snackHolder.rotation.z = props.snack === 'bottle' ? -lift * 0.6 : 0
+        snackHolder.position.set(0, 1.17 + lift * 0.49, 1.03)
+        snackHolder.rotation.z = serving === 'bottle' ? -lift * 0.6 : 0
         snackHolder.scale.setScalar(0.5 * nibble)
       }
       const idle = reducedMotion.matches
         ? 0
         : Math.sin(time * (props.sleeping ? 1.15 : 1.45))
       const still = reducedMotion.matches
-      const play = reacting && props.reaction === 'play'
+      const play = reacting && sampled.motion === 'play'
       ballPlaying.value = play && props.ball
-      rewards.ball.position.y =
-        0.2 + (ballPlaying.value ? Math.abs(Math.sin(age * 9)) * 0.42 : 0)
-      rewards.ball.rotation.z = ballPlaying.value ? age * 5 : 0
-      const feed = reacting && props.reaction === 'feed'
-      const pet = reacting && props.reaction === 'pet'
+      rewards.ball.position.x =
+        0.82 + (props.ball ? sampled.ballTravel * 0.55 : 0)
+      rewards.ball.position.y = 0.2 + (props.ball ? sampled.ballLift : 0)
+      rewards.ball.rotation.z = props.ball ? -sampled.ballTravel * 5 : 0
+      const feed = reacting && sampled.motion === 'feed'
+      const pet = reacting && sampled.motion === 'pet'
       const anticipation = play ? Math.sin(Math.min(age / 0.2, 1) * Math.PI) : 0
       const jump =
         play && age > 0.2
           ? Math.max(0, Math.sin(((age - 0.2) / 0.65) * Math.PI)) * energy
           : 0
       const breathe = idle * (props.sleeping ? 0.018 : 0.004)
-      creature.root.position.y = jump * 0.29 - anticipation * 0.05 - rest * 0.04
+      creature.root.position.x = sampled.x
+      creature.root.position.y =
+        jump * 0.29 - anticipation * 0.05 - rest * 0.04 + sampled.y
       creature.root.scale.set(
         1 + anticipation * 0.035 - jump * 0.025 - breathe * 0.4 + rest * 0.035,
         1 - anticipation * 0.06 + jump * 0.045 + breathe - rest * 0.12,
         1 + rest * 0.03,
       )
-      creature.root.rotation.z =
-        (pet ? Math.sin(age * 6) * 0.065 * energy : 0) - rest * 0.1
+      creature.root.rotation.z = sampled.roll - rest * 0.1
       const pose = (offset: number) => {
         const phase = (time - offset + 14) % 14
         const left =
@@ -287,14 +382,14 @@ onMounted(() => {
       const headTurn = still || props.sleeping ? 0 : pose(0.22)
       const curious = Math.max(0, headTurn)
       creature.head.rotation.z =
-        -0.06 + curious * 0.07 + (pet ? energy * 0.09 : 0) + rest * 0.24
-      creature.head.rotation.y = -0.025 + headTurn * 0.1
+        -0.06 + curious * 0.07 + sampled.headRoll + rest * 0.24
+      creature.head.rotation.y = -0.025 + headTurn * 0.1 + sampled.headTurn
       creature.head.rotation.x =
-        rest * 0.23 +
-        (feed ? Math.sin(age * 15) * 0.025 * energy : -curious * 0.025)
+        rest * 0.23 + -curious * 0.025 + sampled.headPitch
       const blinkPhase = time % 6.1
       const blink = Math.max(
         rest,
+        sampled.eyesClosed,
         still ? 0 : Math.max(0, 1 - Math.abs(blinkPhase - 5.78) / 0.13),
       )
       creature.lids.forEach((lid) => {
@@ -305,8 +400,8 @@ onMounted(() => {
       })
       creature.eyes.forEach((eye) => {
         eye.visible = blink < 0.93
-        eye.position.x = glance * 0.014
-        eye.position.y = feed ? -energy * 0.014 : curious * 0.007
+        eye.position.x = glance * 0.014 + sampled.headTurn * 0.05
+        eye.position.y = sampled.gaze + curious * 0.007
       })
       creature.brows.forEach((brow, index) => {
         brow.rotation.z =
@@ -316,7 +411,8 @@ onMounted(() => {
       creature.paws.forEach((paw, index) => {
         paw.rotation.z =
           (index === 0 ? -0.04 : 0.075) +
-          (index === 0 ? 1 : -1) * (energy * (feed ? -0.5 : 0.15) - rest * 0.35)
+          (index === 0 ? 1 : -1) *
+            (energy * 0.15 - sampled.pawReach - rest * 0.35)
         paw.position.y =
           1.22 +
           (index === 0 ? 0 : 0.035) +
@@ -326,11 +422,12 @@ onMounted(() => {
       creature.claws.forEach((claw, index) => {
         claw.rotation.z =
           (index === 0 ? -1 : 1) *
-          (-0.42 +
-            (index === 0 ? 0.06 : -0.06) +
-            energy * 0.23 +
-            idle * 0.015 -
-            rest * 0.2)
+            (-0.42 +
+              (index === 0 ? 0.06 : -0.06) +
+              energy * 0.23 +
+              idle * 0.015 -
+              rest * 0.2) -
+          (index === 0 ? sampled.leftClaw : sampled.rightClaw)
       })
       creature.antennae.forEach((antenna, index) => {
         antenna.rotation.z = still
@@ -346,34 +443,42 @@ onMounted(() => {
       if (!ready) {
         ready = true
         status.value = 'ready'
+        syncEnvironment()
         emit('ready')
       }
       frame = requestAnimationFrame(animate)
     }
+    let disposed = false
     const contextLost = (event: Event) => {
       event.preventDefault()
-      stopPaletteWatch()
-      stopSnackWatch()
-      stopSleepingWatch()
-      stopRewardWatch()
-      cancelAnimationFrame(frame)
+      cleanup?.()
       status.value = 'fallback'
     }
-    renderer.domElement.addEventListener('webglcontextlost', contextLost)
+    canvas.addEventListener('webglcontextlost', contextLost)
     cleanup = () => {
+      if (disposed) return
+      disposed = true
+      react = () => {}
+      rotate = () => {}
       stopPaletteWatch()
-      stopSnackWatch()
-      stopSleepingWatch()
+      stopEnvironmentWatch()
       stopRewardWatch()
       cancelAnimationFrame(frame)
-      reducedMotion.removeEventListener('change', invalidate)
+      document.removeEventListener('visibilitychange', visibilityChanged)
+      reducedMotion.removeEventListener('change', syncEnvironment)
+      canvas.removeEventListener('pointerdown', pointerDown, true)
+      canvas.removeEventListener('pointermove', pointerMove, true)
+      canvas.removeEventListener('pointerup', pointerUp, true)
+      canvas.removeEventListener('pointercancel', pointerCancel, true)
+      canvas.removeEventListener('lostpointercapture', pointerCancel)
+      gesture = null
       observer.disconnect()
       controls.dispose()
-      renderer?.domElement.removeEventListener('webglcontextlost', contextLost)
+      canvas.removeEventListener('webglcontextlost', contextLost)
       if (scene) disposeObject(scene)
       key.shadow.dispose()
       renderer?.dispose()
-      renderer?.domElement.remove()
+      canvas.remove()
       renderer?.forceContextLoss()
     }
     animate()
@@ -395,6 +500,7 @@ onBeforeUnmount(() => cleanup?.())
     :data-sleeping="sleeping"
     :data-renderer="status"
     :data-snack="activeSnack"
+    :data-motion="motion"
     :data-ribbon="ribbon"
     :data-ball="ball"
     :data-ball-playing="ballPlaying"
