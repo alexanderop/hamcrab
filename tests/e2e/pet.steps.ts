@@ -12,6 +12,51 @@ Given('I visit Pinchy on a phone', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 })
   await visit(page)
 })
+Given(
+  'I visit Pinchy on a {int} by {int} screen',
+  async ({ page }, width: number, height: number) => {
+    await page.setViewportSize({ width, height })
+    await visit(page)
+  },
+)
+Then(
+  'the casing fills the viewport with all care controls in reach',
+  async ({ page, browserName }) => {
+    const viewport = page.viewportSize()!
+    const casing = await page.locator('.device-shell').boundingBox()
+    expect(casing).toEqual({ x: 0, y: 0, ...viewport })
+    expect(
+      await page.evaluate(
+        () =>
+          document.documentElement.scrollWidth === innerWidth &&
+          document.documentElement.scrollHeight === innerHeight,
+      ),
+    ).toBe(true)
+    for (const name of ['Füttern', 'Spielen', 'Schlafen']) {
+      const button = page.getByRole('button', { name, exact: true })
+      await expect(button).toBeInViewport({ ratio: 1 })
+      const box = await button.boundingBox()
+      expect(box!.width).toBeGreaterThanOrEqual(44)
+      expect(box!.height).toBeGreaterThanOrEqual(44)
+    }
+    await expect(page.locator('[data-renderer]')).toHaveAttribute(
+      'data-renderer',
+      'ready',
+    )
+    const canvas = page.locator('canvas')
+    await expect(canvas).toBeVisible()
+    const canvasBox = (await canvas.boundingBox())!
+    expect(canvasBox.x).toBeGreaterThanOrEqual(0)
+    expect(canvasBox.y).toBeGreaterThanOrEqual(0)
+    expect(canvasBox.x + canvasBox.width).toBeLessThanOrEqual(viewport.width)
+    expect(canvasBox.y + canvasBox.height).toBeLessThanOrEqual(viewport.height)
+    expect(canvasBox.height).toBeGreaterThan(90)
+    await page.screenshot({
+      path: `test-results/full-casing-${viewport.width}-${viewport.height}-${browserName}.png`,
+      fullPage: true,
+    })
+  },
+)
 When('I feed Pinchy', async ({ page }) => {
   await page.getByRole('button', { name: 'Füttern' }).click()
   await expect(

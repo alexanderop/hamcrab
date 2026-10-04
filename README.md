@@ -1,6 +1,6 @@
 # Hamcrab
 
-Ein kleiner Hamster im Hummerkostüm als lokale Vue-PWA im Stil eines 90er-Taschenhaustiers. Die App zeigt ausschließlich das an den Bildschirm angepasste Gerät. Das Kunststoffgehäuse, der LCD-Rahmen und die Knöpfe sind CSS. Die Figur im Bildschirm bleibt echtes, drehbares 3D. Die originale Three.js-Figur ist aus editierbarer Geometrie aufgebaut und lässt sich mit Maus, Touch oder Pfeiltasten drehen.
+Ein kleiner Hamster im Hummerkostüm als lokale Vue-PWA im Stil eines 90er-Taschenhaustiers. Das Gehäuse füllt die gesamte App-Fläche ohne Außenrand. Das Display nutzt den verbleibenden Platz; die Knöpfe liegen im Hochformat unten und im flachen Querformat rechts. Das Kunststoffgehäuse, der LCD-Rahmen und die Knöpfe sind CSS. Die Figur im Bildschirm bleibt echtes, drehbares 3D. Die originale Three.js-Figur ist aus editierbarer Geometrie aufgebaut und lässt sich mit Maus, Touch oder Pfeiltasten drehen.
 
 ## Starten
 

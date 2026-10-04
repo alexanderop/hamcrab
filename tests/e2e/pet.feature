@@ -73,3 +73,14 @@ Feature: A little friendship with Pinchy
     Given I visit my new companion
     And my home is available offline
     Then the app manifest and icons are ready for installation
+
+  Scenario Outline: The handheld fills the app without an outside border
+    Given I visit Pinchy on a <width> by <height> screen
+    Then the casing fills the viewport with all care controls in reach
+
+    Examples:
+      | width | height |
+      | 390   | 844    |
+      | 1440  | 900    |
+      | 844   | 390    |
+      | 320   | 568    |

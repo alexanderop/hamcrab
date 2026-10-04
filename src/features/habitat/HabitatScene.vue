@@ -43,7 +43,7 @@ onMounted(() => {
     const camera = new THREE.PerspectiveCamera(34, 1, 0.1, 40)
     camera.position.set(1.05, 2.6, 7.8)
     const controls = new OrbitControls(camera, renderer.domElement)
-    controls.target.set(0, 1.72, 0)
+    controls.target.set(0, 1.65, 0)
     controls.enableDamping = true
     controls.enableZoom = false
     controls.enablePan = false
@@ -92,7 +92,14 @@ onMounted(() => {
       if (!width || !height || !renderer) return
       renderer.setSize(width, height)
       camera.aspect = width / height
-      camera.position.setLength(camera.aspect < 0.9 ? 8.35 : 7.8)
+      const halfFieldOfView = THREE.MathUtils.degToRad(camera.fov / 2)
+      const distance =
+        Math.max(2.05, 1.55 / camera.aspect) / Math.tan(halfFieldOfView) + 0.55
+      camera.position
+        .sub(controls.target)
+        .normalize()
+        .multiplyScalar(distance)
+        .add(controls.target)
       camera.updateProjectionMatrix()
     }
     const observer = new ResizeObserver(resize)

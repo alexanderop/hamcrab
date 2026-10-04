@@ -53,9 +53,7 @@ onUnmounted(() => {
       :class="{ night: pet.sleeping }"
       aria-label="Pinchys Zuhause"
     >
-      <div class="keychain-loop" aria-hidden="true" />
       <div class="device-shell">
-        <div class="shell-shine" aria-hidden="true" />
         <div class="device-brand">
           <span aria-hidden="true">✦</span> hamcrab
           <span aria-hidden="true">✦</span><small>YOUR TINY BESTIE</small>
