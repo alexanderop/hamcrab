@@ -7,6 +7,7 @@ import type { SnackKind } from '../scene-types'
 import { disposeObject } from '../three/disposeObject'
 import { createRewards } from '../three/rewards'
 import { createCreature } from '../three/creature'
+import { createSleepNest } from '../three/sleepNest'
 import type { CostumePalette, CreatureReaction } from '../scene-types'
 
 const props = defineProps<{
@@ -27,6 +28,16 @@ const host = ref<HTMLDivElement>()
 const ballPlaying = ref(false)
 const activeSnack = ref<SnackKind | null>(null)
 const status = ref<'loading' | 'ready' | 'fallback'>('loading')
+const stars = [
+  [9, 25],
+  [19, 61],
+  [29, 16],
+  [39, 39],
+  [63, 13],
+  [73, 65],
+  [87, 47],
+  [93, 22],
+] as const
 let cleanup: (() => void) | undefined
 let react = () => {}
 let rotate = (_direction: number) => {}
@@ -108,7 +119,14 @@ onMounted(() => {
       { immediate: true },
     )
     scene.add(creature.root)
-    scene.add(new THREE.HemisphereLight('#fff0df', '#99a888', 1.25))
+    const ambient = new THREE.HemisphereLight('#fff0df', '#99a888', 1.25)
+    scene.add(ambient)
+    const nest = createSleepNest()
+    scene.add(nest)
+    const daylight = new THREE.Color('#fff0db')
+    const moonlight = new THREE.Color('#b9caff')
+    const dayGround = new THREE.Color('#bbc7a0')
+    const nightGround = new THREE.Color('#737fa8')
     const key = new THREE.DirectionalLight('#fff0db', 3.1)
     key.position.set(-3, 5, 6)
     key.castShadow = true
@@ -167,6 +185,8 @@ onMounted(() => {
     const clock = new THREE.Clock()
     let frame = 0
     let ready = false
+    let sleepBlend = props.sleeping ? 1 : 0
+    let previousTime = 0
     react = () => {
       reactionStart = clock.getElapsedTime()
       invalidate()
@@ -178,6 +198,8 @@ onMounted(() => {
     const animate = () => {
       if (!renderer || !scene) return
       const time = clock.getElapsedTime()
+      const elapsed = Math.min(0.05, time - previousTime)
+      previousTime = time
       const age = time - reactionStart
       const duration = props.reaction === 'feed' ? 3.4 : 1.5
       const reacting =
@@ -198,6 +220,20 @@ onMounted(() => {
         frame = requestAnimationFrame(animate)
         return
       }
+      const targetSleep = props.sleeping ? 1 : 0
+      sleepBlend = reducedMotion.matches
+        ? targetSleep
+        : THREE.MathUtils.damp(sleepBlend, targetSleep, 5, elapsed)
+      if (Math.abs(sleepBlend - targetSleep) < 0.001) sleepBlend = targetSleep
+      const rest = sleepBlend
+      key.color.copy(daylight).lerp(moonlight, rest)
+      key.intensity = 3.1 - rest * 1.4
+      ambient.intensity = 1.25 - rest * 0.4
+      fill.intensity = 0.85 + rest * 0.3
+      rim.intensity = 2.4 - rest * 1.1
+      pedestal.material.color.copy(dayGround).lerp(nightGround, rest)
+      nest.visible = rest > 0.001
+      nest.scale.setScalar(Math.max(0.001, rest))
       activeSnack.value = nextSnack
       snackHolder.visible = !!serving
       if (serving) {
@@ -228,14 +264,15 @@ onMounted(() => {
         play && age > 0.2
           ? Math.max(0, Math.sin(((age - 0.2) / 0.65) * Math.PI)) * energy
           : 0
-      const breathe = idle * (props.sleeping ? 0.009 : 0.004)
-      creature.root.position.y = jump * 0.29 - anticipation * 0.05
+      const breathe = idle * (props.sleeping ? 0.018 : 0.004)
+      creature.root.position.y = jump * 0.29 - anticipation * 0.05 - rest * 0.04
       creature.root.scale.set(
-        1 + anticipation * 0.035 - jump * 0.025 - breathe * 0.4,
-        1 - anticipation * 0.06 + jump * 0.045 + breathe,
-        1,
+        1 + anticipation * 0.035 - jump * 0.025 - breathe * 0.4 + rest * 0.035,
+        1 - anticipation * 0.06 + jump * 0.045 + breathe - rest * 0.12,
+        1 + rest * 0.03,
       )
-      creature.root.rotation.z = pet ? Math.sin(age * 6) * 0.065 * energy : 0
+      creature.root.rotation.z =
+        (pet ? Math.sin(age * 6) * 0.065 * energy : 0) - rest * 0.1
       const pose = (offset: number) => {
         const phase = (time - offset + 14) % 14
         const left =
@@ -250,19 +287,16 @@ onMounted(() => {
       const headTurn = still || props.sleeping ? 0 : pose(0.22)
       const curious = Math.max(0, headTurn)
       creature.head.rotation.z =
-        -0.06 + curious * 0.07 + (pet ? energy * 0.09 : 0)
+        -0.06 + curious * 0.07 + (pet ? energy * 0.09 : 0) + rest * 0.24
       creature.head.rotation.y = -0.025 + headTurn * 0.1
-      creature.head.rotation.x = props.sleeping
-        ? 0.13
-        : feed
-          ? Math.sin(age * 15) * 0.025 * energy
-          : -curious * 0.025
+      creature.head.rotation.x =
+        rest * 0.23 +
+        (feed ? Math.sin(age * 15) * 0.025 * energy : -curious * 0.025)
       const blinkPhase = time % 6.1
-      const blink = props.sleeping
-        ? 1
-        : still
-          ? 0
-          : Math.max(0, 1 - Math.abs(blinkPhase - 5.78) / 0.13)
+      const blink = Math.max(
+        rest,
+        still ? 0 : Math.max(0, 1 - Math.abs(blinkPhase - 5.78) / 0.13),
+      )
       creature.lids.forEach((lid) => {
         lid.rotation.x = -Math.PI / 2 + blink * Math.PI
       })
@@ -282,14 +316,21 @@ onMounted(() => {
       creature.paws.forEach((paw, index) => {
         paw.rotation.z =
           (index === 0 ? -0.04 : 0.075) +
-          (index === 0 ? 1 : -1) * energy * (feed ? -0.5 : 0.15)
+          (index === 0 ? 1 : -1) * (energy * (feed ? -0.5 : 0.15) - rest * 0.35)
         paw.position.y =
-          1.22 + (index === 0 ? 0 : 0.035) + (feed ? energy * 0.075 : 0)
+          1.22 +
+          (index === 0 ? 0 : 0.035) +
+          (feed ? energy * 0.075 : 0) -
+          rest * 0.1
       })
       creature.claws.forEach((claw, index) => {
         claw.rotation.z =
           (index === 0 ? -1 : 1) *
-          (-0.42 + (index === 0 ? 0.06 : -0.06) + energy * 0.23 + idle * 0.015)
+          (-0.42 +
+            (index === 0 ? 0.06 : -0.06) +
+            energy * 0.23 +
+            idle * 0.015 -
+            rest * 0.2)
       })
       creature.antennae.forEach((antenna, index) => {
         antenna.rotation.z = still
@@ -297,9 +338,8 @@ onMounted(() => {
           : Math.sin(time * 1.4 - index * 0.7) * 0.014 +
             headTurn * (index === 0 ? 0.045 : 0.025) +
             Math.sin(age * 8 - 0.65) * energy * 0.12
-        antenna.rotation.x = still
-          ? 0
-          : Math.sin(time * 1.2 - index * 0.6) * 0.018
+        antenna.rotation.x =
+          rest * 0.24 + (still ? 0 : Math.sin(time * 1.2 - index * 0.6) * 0.018)
       })
       renderer.render(scene, camera)
       needsRender = false
@@ -351,6 +391,8 @@ onBeforeUnmount(() => cleanup?.())
   <div
     ref="host"
     class="habitat-scene"
+    :class="{ sleeping }"
+    :data-sleeping="sleeping"
     :data-renderer="status"
     :data-snack="activeSnack"
     :data-ribbon="ribbon"
@@ -363,6 +405,28 @@ onBeforeUnmount(() => cleanup?.())
     @keydown.left.prevent="rotate(-1)"
     @keydown.right.prevent="rotate(1)"
   >
+    <div class="night-sky" aria-hidden="true">
+      <svg class="night-moon" viewBox="0 0 48 48">
+        <path
+          d="M33 4a20 20 0 1 0 11 30A18 18 0 0 1 33 4Z"
+          fill="currentColor"
+        />
+      </svg>
+      <span
+        v-for="([left, top], index) in stars"
+        :key="index"
+        class="night-star"
+        :style="{
+          left: `${left}%`,
+          top: `${top}%`,
+          animationDelay: `${index * -0.7}s`,
+        }"
+        >✦</span
+      >
+    </div>
+    <div v-if="sleeping" class="sleep-bubbles" aria-hidden="true">
+      <span>z</span><span>z</span><span>Z</span>
+    </div>
     <div v-if="status === 'fallback'" class="habitat-fallback">
       <span aria-hidden="true">🐹</span>
       <p>
@@ -388,6 +452,8 @@ onBeforeUnmount(() => cleanup?.())
 }
 .habitat-scene :deep(canvas) {
   display: block;
+  position: relative;
+  z-index: 1;
   width: 100%;
   height: 100%;
   cursor: grab;
@@ -404,6 +470,7 @@ onBeforeUnmount(() => cleanup?.())
   justify-content: center;
   text-align: center;
   color: #53614c;
+  z-index: 1;
 }
 .habitat-fallback > span {
   font-size: 110px;
@@ -413,5 +480,107 @@ onBeforeUnmount(() => cleanup?.())
 }
 .habitat-fallback small {
   font-size: 12px;
+}
+.night-sky {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  background: radial-gradient(
+    ellipse at 50% 100%,
+    #67769e 0%,
+    #35466a 55%,
+    #202c49 100%
+  );
+  opacity: 0;
+  transition: opacity 1.1s ease;
+}
+.sleeping .night-sky {
+  opacity: 1;
+}
+.night-moon {
+  position: absolute;
+  right: 13%;
+  top: 13%;
+  width: clamp(24px, 7vh, 46px);
+  color: #fff1bd;
+  filter: drop-shadow(0 0 12px #fbe9b64d);
+}
+.night-star {
+  position: absolute;
+  color: #e4e7ff;
+  font-size: 10px;
+  opacity: 0.55;
+}
+.sleeping .night-star {
+  animation: twinkle 4s ease-in-out infinite;
+}
+.sleep-bubbles {
+  position: absolute;
+  z-index: 2;
+  left: 56%;
+  top: 24%;
+  width: 58px;
+  height: 65px;
+  pointer-events: none;
+  color: #f3edff;
+  text-shadow: 0 2px 5px #233355;
+  font-family: var(--pixel);
+}
+.sleep-bubbles span {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  font-size: 12px;
+  animation: dream-drift 3.6s ease-in-out infinite;
+}
+.sleep-bubbles span:nth-child(2) {
+  animation-delay: -1.2s;
+}
+.sleep-bubbles span:nth-child(3) {
+  animation-delay: -2.4s;
+  font-size: 18px;
+}
+.sleeping .habitat-fallback {
+  color: #f3edff;
+}
+.sleeping .habitat-fallback > span {
+  transform: rotate(-12deg);
+}
+@keyframes dream-drift {
+  0% {
+    transform: translate(0, 0) scale(0.65);
+    opacity: 0;
+  }
+  20% {
+    opacity: 0.9;
+  }
+  80% {
+    opacity: 0.8;
+  }
+  100% {
+    transform: translate(30px, -48px) scale(1.1);
+    opacity: 0;
+  }
+}
+@keyframes twinkle {
+  50% {
+    opacity: 0.95;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .night-sky {
+    transition: none;
+  }
+  .sleeping .night-star,
+  .sleep-bubbles span {
+    animation: none;
+  }
+  .sleep-bubbles span:nth-child(2) {
+    transform: translate(16px, -18px);
+  }
+  .sleep-bubbles span:nth-child(3) {
+    transform: translate(32px, -38px);
+  }
 }
 </style>

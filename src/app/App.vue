@@ -79,6 +79,7 @@ watch(
 const sceneDescription = computed(() =>
   [
     text.value.scene,
+    ...(pet.value.sleeping ? [text.value.sleepingScene] : []),
     ...friendship.value.unlocked.map(
       (reward) => text.value.friendship.descriptions[reward],
     ),
@@ -237,7 +238,7 @@ onUnmounted(() => {
                 :snack="servedSnack"
                 :reaction-id="reactionId"
               /><span class="scene-caption">{{
-                pet.sleeping ? 'Z z z …' : text.hello
+                pet.sleeping ? text.sweetDreams : text.hello
               }}</span>
             </div>
             <div class="screen-tools">

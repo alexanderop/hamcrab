@@ -13,12 +13,15 @@ Feature: A little friendship with Pinchy
   Scenario: Sleeping restores energy and pauses active care
     Given I visit my new companion
     When I put Pinchy to sleep
-    And I reload my home
-    Then active care is unavailable
+    Then the bedtime scene is visible
+    When I reload my home
+    Then the bedtime scene is visible
+    And active care is unavailable
     When two hours pass
     And I wake Pinchy
     Then Pinchy has 57 fullness, 72 happiness and 100 energy
     And active care is available
+    And the daytime scene is restored
 
   Scenario: A small screen keeps care within reach
     Given I visit Pinchy on a phone
@@ -51,3 +54,10 @@ Feature: A little friendship with Pinchy
       | 1440  | 900    |
       | 844   | 390    |
       | 320   | 568    |
+
+  Scenario: Sleep decorations respect motion preferences
+    Given I visit my new companion
+    When I put Pinchy to sleep
+    Then bedtime decorations stay still
+    When I allow motion
+    Then bedtime decorations drift gently

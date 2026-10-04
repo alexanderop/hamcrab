@@ -382,16 +382,18 @@ button:focus-visible,
   flex-shrink: 0;
 }
 .night .lcd-screen {
-  background: #a4ad96;
+  background: #c0c8de;
 }
 .night .message-strip {
-  background: #89977d;
+  background: #adb8d1;
 }
 .night .scene-caption {
-  background: #b5c0a666;
+  background: #263553cc;
+  color: #f5eac7;
+  border-color: #8190b5;
 }
 .night .meter > span.filled {
-  background: #3f4c3b;
+  background: #455578;
 }
 .settings-trigger,
 .settings-close {
@@ -735,4 +737,15 @@ button:focus-visible,
     transition: none !important;
     scroll-behavior: auto !important;
   }
+}
+
+.night .lcd-screen .friendship-summary {
+  background: #d4d9eb;
+  border-color: #8f9abb;
+  color: #344362;
+}
+.night .screen-tools button {
+  background: #d4d9eb;
+  border-color: #8f9abb;
+  color: #344362;
 }

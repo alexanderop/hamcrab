@@ -267,3 +267,49 @@ Then(
     ).toBe(home)
   },
 )
+
+Then('the bedtime scene is visible', async ({ page, browserName }) => {
+  await expect(
+    page.getByRole('img', { name: /sleeping with closed eyes/ }),
+  ).toBeVisible()
+  await expect(page.getByText('SWEET DREAMS', { exact: true })).toBeVisible()
+  await expect(page.locator('.night-sky')).toHaveCSS('opacity', '1')
+  await expect(page.locator('.sleep-bubbles span')).toHaveCount(3)
+  await expect(page.locator('[data-renderer]')).toHaveAttribute(
+    'data-renderer',
+    'ready',
+  )
+  await page.screenshot({ path: `test-results/bedtime-${browserName}.png` })
+})
+Then('the daytime scene is restored', async ({ page }) => {
+  await expect(page.locator('.night-sky')).toHaveCSS('opacity', '0')
+  await expect(page.locator('.sleep-bubbles')).toHaveCount(0)
+  await expect(
+    page.getByRole('img', { name: /sleeping with closed eyes/ }),
+  ).toHaveCount(0)
+})
+Then('bedtime decorations stay still', async ({ page }) => {
+  await expect(page.locator('.sleep-bubbles span').first()).toHaveCSS(
+    'animation-name',
+    'none',
+  )
+  await expect(page.locator('.night-star').first()).toHaveCSS(
+    'animation-name',
+    'none',
+  )
+})
+When('I allow motion', async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: 'no-preference' })
+})
+Then('bedtime decorations drift gently', async ({ page }) => {
+  const bubble = page.locator('.sleep-bubbles span').first()
+  await expect(bubble).not.toHaveCSS('animation-name', 'none')
+  const initial = await bubble.evaluate(
+    (element) => getComputedStyle(element).transform,
+  )
+  await expect
+    .poll(() =>
+      bubble.evaluate((element) => getComputedStyle(element).transform),
+    )
+    .not.toBe(initial)
+})

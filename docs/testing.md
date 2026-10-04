@@ -39,6 +39,8 @@ Die bisherigen 46 E2E-Szenarien bestanden vor und nach dem Architekturumbau. Die
 
 `tests/support/pet-repository.ts` ist ausschließlich eine deterministische Testabhängigkeit. Komponenten-Harnesses verbinden echte Komponenten mit explizit übergebenen Services; sie kopieren keine Spielregeln. Datenbanken und Storage-Schlüssel der Adaptertests sind pro Test eindeutig und werden aufgeräumt.
 
+Die Schlaf-Szenarien in `tests/e2e/pet.feature` prüfen die Nachtszene nach dem Einschlafen und Neuladen, die Rückkehr zur Tagszene und ruhende beziehungsweise animierte Z-Zeichen bei geänderter Bewegungseinstellung. `test-results/bedtime-*.png` zeigt die gerenderte Schlafpose mit Kissen, Mond und Sternen.
+
 ## Ausführen
 
 ```sh
