@@ -1,0 +1,8 @@
+node_modules
+dist
+.features-gen
+.bdd-gen
+playwright-report
+test-results
+.audit
+pnpm-lock.yaml
