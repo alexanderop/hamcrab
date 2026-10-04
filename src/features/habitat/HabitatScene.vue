@@ -2,6 +2,7 @@
 import { onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import * as THREE from 'three'
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js'
 import { createCreature, type CreatureReaction } from './creature'
 
 const props = defineProps<{
@@ -25,6 +26,7 @@ onMounted(() => {
   const element = host.value
   let renderer: THREE.WebGLRenderer | undefined
   let scene: THREE.Scene | undefined
+  let environment: THREE.WebGLRenderTarget | undefined
   try {
     renderer = new THREE.WebGLRenderer({
       antialias: true,
@@ -40,10 +42,20 @@ onMounted(() => {
     renderer.domElement.setAttribute('aria-hidden', 'true')
     element.append(renderer.domElement)
     scene = new THREE.Scene()
+    const studio = new RoomEnvironment()
+    const pmrem = new THREE.PMREMGenerator(renderer)
+    try {
+      environment = pmrem.fromScene(studio, 0.04)
+      scene.environment = environment.texture
+      scene.environmentIntensity = 0.32
+    } finally {
+      studio.dispose()
+      pmrem.dispose()
+    }
     const camera = new THREE.PerspectiveCamera(34, 1, 0.1, 40)
-    camera.position.set(1.05, 2.6, 7.8)
+    camera.position.set(1.45, 2.65, 7.8)
     const controls = new OrbitControls(camera, renderer.domElement)
-    controls.target.set(0, 1.72, 0)
+    controls.target.set(0, 1.76, 0)
     controls.enableDamping = true
     controls.enableZoom = false
     controls.enablePan = false
@@ -53,9 +65,9 @@ onMounted(() => {
     controls.update()
     const creature = createCreature()
     scene.add(creature.root)
-    scene.add(new THREE.HemisphereLight('#fff0df', '#99a888', 1.25))
-    const key = new THREE.DirectionalLight('#fff0db', 3.1)
-    key.position.set(-3, 5, 6)
+    scene.add(new THREE.HemisphereLight('#ffefdb', '#8b7180', 1.4))
+    const key = new THREE.DirectionalLight('#fff0db', 2.7)
+    key.position.set(-3.5, 5, 6)
     key.castShadow = true
     key.shadow.mapSize.set(1024, 1024)
     key.shadow.camera.left = -3
@@ -64,35 +76,56 @@ onMounted(() => {
     key.shadow.camera.bottom = -3
     key.shadow.normalBias = 0.025
     key.shadow.bias = -0.0002
+    key.shadow.radius = 3
     scene.add(key)
-    const fill = new THREE.DirectionalLight('#e7edff', 0.85)
+    const fill = new THREE.DirectionalLight('#e7edff', 1.05)
     fill.position.set(4, 3, 3)
     scene.add(fill)
     const rim = new THREE.DirectionalLight('#ffe4b9', 2.4)
     rim.position.set(2, 4, -4)
     scene.add(rim)
-    const pedestal = new THREE.Mesh(
-      new THREE.CylinderGeometry(1.35, 1.38, 0.06, 64),
-      new THREE.MeshStandardMaterial({ color: '#bbc7a0', roughness: 1 }),
-    )
-    pedestal.position.y = -0.09
-    pedestal.receiveShadow = true
-    scene.add(pedestal)
     const ground = new THREE.Mesh(
-      new THREE.CircleGeometry(2.7, 96),
-      new THREE.ShadowMaterial({ opacity: 0.12 }),
+      new THREE.CircleGeometry(2.7, 64),
+      new THREE.ShadowMaterial({ opacity: 0.09 }),
     )
     ground.rotation.x = -Math.PI / 2
-    ground.position.y = -0.125
+    ground.position.y = -0.015
     ground.receiveShadow = true
     scene.add(ground)
+    const contactPixels = new Uint8Array(64 * 64 * 4)
+    for (let y = 0; y < 64; y++) {
+      for (let x = 0; x < 64; x++) {
+        const index = (y * 64 + x) * 4
+        const radius = Math.hypot((x - 31.5) / 31.5, (y - 31.5) / 31.5)
+        contactPixels[index] = 66
+        contactPixels[index + 1] = 55
+        contactPixels[index + 2] = 47
+        contactPixels[index + 3] = Math.round(
+          Math.pow(Math.max(0, 1 - radius), 2) * 90,
+        )
+      }
+    }
+    const contactMap = new THREE.DataTexture(contactPixels, 64, 64)
+    contactMap.magFilter = THREE.LinearFilter
+    contactMap.needsUpdate = true
+    const contact = new THREE.Mesh(
+      new THREE.PlaneGeometry(2.6, 1.9),
+      new THREE.MeshBasicMaterial({
+        map: contactMap,
+        transparent: true,
+        depthWrite: false,
+      }),
+    )
+    contact.rotation.x = -Math.PI / 2
+    contact.position.set(0, -0.01, 0.1)
+    scene.add(contact)
     const resize = () => {
       const width = element.clientWidth
       const height = element.clientHeight
       if (!width || !height || !renderer) return
       renderer.setSize(width, height)
       camera.aspect = width / height
-      camera.position.setLength(camera.aspect < 0.9 ? 8.35 : 7.8)
+      camera.position.setLength(camera.aspect < 0.9 ? 8.0 : 7.55)
       camera.updateProjectionMatrix()
     }
     const observer = new ResizeObserver(resize)
@@ -156,6 +189,11 @@ onMounted(() => {
         : feed
           ? Math.sin(age * 15) * 0.025 * energy
           : -curious * 0.025
+      creature.mouth.scale.y = props.sleeping
+        ? 0.42
+        : feed
+          ? 0.8 + Math.sin(age * 15) * 0.18 * energy
+          : 1 + (play ? energy * 0.3 : pet ? energy * 0.12 : 0)
       const blinkPhase = time % 6.1
       const blink = props.sleeping
         ? 1
@@ -183,7 +221,7 @@ onMounted(() => {
           (index === 0 ? -0.04 : 0.075) +
           (index === 0 ? 1 : -1) * energy * (feed ? -0.5 : 0.15)
         paw.position.y =
-          1.22 + (index === 0 ? 0 : 0.035) + (feed ? energy * 0.075 : 0)
+          1.02 + (index === 0 ? 0 : 0.055) + (feed ? energy * 0.075 : 0)
       })
       creature.claws.forEach((claw, index) => {
         claw.rotation.z =
@@ -222,6 +260,7 @@ onMounted(() => {
       renderer?.domElement.removeEventListener('webglcontextlost', contextLost)
       const geometries = new Set<THREE.BufferGeometry>()
       const materials = new Set<THREE.Material>()
+      const textures = new Set<THREE.Texture>()
       scene?.traverse((object) => {
         if (object instanceof THREE.Mesh) {
           geometries.add(object.geometry)
@@ -231,7 +270,14 @@ onMounted(() => {
         }
       })
       geometries.forEach((geometry) => geometry.dispose())
-      materials.forEach((material) => material.dispose())
+      materials.forEach((material) => {
+        for (const value of Object.values(material)) {
+          if (value instanceof THREE.Texture) textures.add(value)
+        }
+        material.dispose()
+      })
+      textures.forEach((texture) => texture.dispose())
+      environment?.dispose()
       key.shadow.dispose()
       renderer?.dispose()
       renderer?.domElement.remove()
@@ -239,6 +285,7 @@ onMounted(() => {
     animate()
   } catch {
     cleanup?.()
+    environment?.dispose()
     renderer?.dispose()
     renderer?.domElement.remove()
     status.value = 'fallback'
