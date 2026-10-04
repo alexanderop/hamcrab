@@ -212,3 +212,66 @@ describe('direct cuddle gesture', () => {
     ).toBe(false)
   })
 })
+
+describe('adult signature motions', () => {
+  it('savors food with closed eyes and a slower head motion', () => {
+    const state = acceptCue(
+      entered(),
+      { id: 1, kind: 'feed', snack: 'pastry', celebrate: false },
+      4,
+    )
+    const gourmet = sampleAnimation(state, 5.2, 'gourmet')
+    expect(gourmet.eyesClosed).toBeGreaterThan(0.7)
+    expect(gourmet.headPitch).not.toBe(sampleAnimation(state, 5.2).headPitch)
+  })
+  it('hops higher on greeting and juggles across two airborne sides', () => {
+    expect(sampleAnimation(entered(), 1, 'whirlwind').y).toBeGreaterThan(0.2)
+    const state = acceptCue(
+      entered(),
+      { id: 1, kind: 'play', celebrate: false },
+      4,
+    )
+    const left = sampleAnimation(state, 4.45, 'whirlwind').juggle!
+    const right = sampleAnimation(state, 4.9, 'whirlwind').juggle!
+    expect(left.x).toBeLessThan(-0.7)
+    expect(right.x).toBeGreaterThan(0.7)
+    expect(left.y).toBeGreaterThanOrEqual(1.5)
+    expect(sampleAnimation(state, 7, 'whirlwind').juggle).toBeNull()
+  })
+  it('leans into a cuddle and greets with a slow low wave', () => {
+    const state = acceptCue(
+      entered(),
+      { id: 1, kind: 'pet', celebrate: false },
+      4,
+    )
+    expect(
+      Math.abs(sampleAnimation(state, 5.2, 'cuddly').roll),
+    ).toBeGreaterThan(0.17)
+    expect(sampleAnimation(entered(), 1, 'cuddly')).toMatchObject({ y: 0 })
+    expect(sampleAnimation(entered(), 1, 'cuddly').leftClaw).toBeLessThan(0.6)
+  })
+  it.each(['gourmet', 'whirlwind', 'cuddly'] as const)(
+    'keeps %s quiet when hidden, sleeping or motion is reduced',
+    (variant) => {
+      for (const setting of [
+        { visible: false },
+        { sleeping: true },
+        { reduced: true },
+      ]) {
+        const state = updateEnvironment(
+          entered(),
+          { ...awake, ...setting },
+          0.1,
+        )
+        expect(sampleAnimation(state, 1, variant)).toMatchObject({
+          motion: 'idle',
+          x: 0,
+          y: 0,
+          leftClaw: 0,
+          rightClaw: 0,
+          juggle: null,
+        })
+      }
+    },
+  )
+})

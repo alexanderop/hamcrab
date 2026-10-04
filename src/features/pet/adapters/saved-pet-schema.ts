@@ -1,5 +1,11 @@
 import { z } from 'zod'
-import { dayLength, requiredCareDays } from '../domain/lifecycle'
+import {
+  adultVariants,
+  neutralDay,
+  pendingAdult,
+  dayLength,
+  requiredCareDays,
+} from '../domain/lifecycle'
 import { parsePetName, type PetSnapshot } from '../domain/pet'
 import { createFriendship } from '../domain/friendship'
 import { InvalidPetDataError } from '../application/ports'
@@ -34,8 +40,55 @@ const friendship = z
       .strict(),
   })
   .strict()
-const lifecycle = z.discriminatedUnion('stage', [
+const variant = z.enum(adultVariants)
+const identity = z.discriminatedUnion('status', [
+  z.object({ status: z.literal('chosen'), variant }).strict(),
+  z
+    .object({
+      status: z.literal('pending'),
+      options: z
+        .tuple([variant, variant])
+        .rest(variant)
+        .refine(
+          (options) =>
+            options.length <= 3 &&
+            options.every(
+              (option, index) =>
+                index === 0 ||
+                adultVariants.indexOf(option) >
+                  adultVariants.indexOf(options[index - 1]!),
+            ),
+        ),
+    })
+    .strict(),
+])
+const day = z
+  .object({
+    day: integer,
+    foods: z
+      .array(z.enum(['franzbroetchen', 'doener', 'augustiner', 'strawberry']))
+      .max(4)
+      .refine((foods) => new Set(foods).size === foods.length),
+    played: z.boolean(),
+    cuddled: z.boolean(),
+  })
+  .strict()
+const lifecycle = z.union([
   z.object({ stage: z.literal('egg') }).strict(),
+  z
+    .object({
+      stage: z.literal('baby'),
+      days: z
+        .array(day)
+        .max(requiredCareDays - 1)
+        .refine((days) =>
+          days.every(
+            (day, index) => index === 0 || day.day > days[index - 1]!.day,
+          ),
+        ),
+    })
+    .strict(),
+  z.object({ stage: z.literal('adult'), identity }).strict(),
   z
     .object({
       stage: z.literal('baby'),
@@ -46,8 +99,15 @@ const lifecycle = z.discriminatedUnion('stage', [
           days.every((day, index) => index === 0 || day > days[index - 1]!),
         ),
     })
-    .strict(),
-  z.object({ stage: z.literal('adult') }).strict(),
+    .strict()
+    .transform((old) => ({
+      stage: 'baby' as const,
+      days: old.careDays.map(neutralDay),
+    })),
+  z
+    .object({ stage: z.literal('adult') })
+    .strict()
+    .transform(pendingAdult),
 ])
 const savedPetSchema = z
   .union([
@@ -55,14 +115,14 @@ const savedPetSchema = z
     z
       .object({ ...petFields, friendship })
       .strict()
-      .transform((pet) => ({ ...pet, lifecycle: { stage: 'adult' as const } })),
+      .transform((pet) => ({ ...pet, lifecycle: pendingAdult() })),
     z
       .object(petFields)
       .strict()
       .transform((pet) => ({
         ...pet,
         friendship: createFriendship(pet.updatedAt, pet.careCount),
-        lifecycle: { stage: 'adult' as const },
+        lifecycle: pendingAdult(),
       })),
   ])
   .refine(
@@ -70,10 +130,10 @@ const savedPetSchema = z
       pet.updatedAt >= pet.createdAt &&
       pet.friendship.daily.day <= Math.floor(pet.updatedAt / dayLength) &&
       (pet.lifecycle.stage !== 'baby' ||
-        pet.lifecycle.careDays.every(
+        pet.lifecycle.days.every(
           (day) =>
-            day >= Math.floor(pet.createdAt / dayLength) &&
-            day <= Math.floor(pet.updatedAt / dayLength),
+            day.day >= Math.floor(pet.createdAt / dayLength) &&
+            day.day <= Math.floor(pet.updatedAt / dayLength),
         )),
   )
 

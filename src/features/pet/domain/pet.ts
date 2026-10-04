@@ -1,4 +1,4 @@
-import { dayLength, rewardGrowth, type Lifecycle } from './lifecycle'
+import { dayLength, recordCare, type Lifecycle } from './lifecycle'
 import { foods, type FoodId } from './foods'
 import {
   advanceFriendship,
@@ -33,7 +33,11 @@ export function parsePetName(
 }
 
 export type CareAction =
-  { type: 'feed'; food: FoodId } | { type: 'play' | 'sleep' | 'wake' | 'pet' }
+  | { type: 'feed'; food: FoodId }
+  | { type: 'play' }
+  | { type: 'sleep' }
+  | { type: 'wake' }
+  | { type: 'pet' }
 export type CareMessage =
   | Exclude<CareAction['type'], 'feed'>
   | FoodId
@@ -119,9 +123,16 @@ export function careForPet(
     ...pet,
     careCount: pet.careCount + 1,
     friendship: rewardCare(pet, action.type),
-    lifecycle: isUsefulCare(pet, action.type)
-      ? rewardGrowth(pet.lifecycle, Math.floor(pet.updatedAt / dayLength))
-      : pet.lifecycle,
+    lifecycle:
+      isUsefulCare(pet, action.type) &&
+      action.type !== 'sleep' &&
+      action.type !== 'wake'
+        ? recordCare(
+            pet.lifecycle,
+            Math.floor(pet.updatedAt / dayLength),
+            action,
+          )
+        : pet.lifecycle,
   }
   switch (action.type) {
     case 'feed': {
@@ -177,7 +188,7 @@ export function hatchPet(
   return {
     pet: {
       ...pet,
-      lifecycle: { stage: 'baby', careDays: [] },
+      lifecycle: { stage: 'baby', days: [] },
       updatedAt,
       friendship: advanceFriendship(pet.friendship, updatedAt),
     },

@@ -1,10 +1,24 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
-import { lifecycleView, type Lifecycle } from '../domain/lifecycle'
+import { computed, ref, watch } from 'vue'
+import {
+  lifecycleView,
+  type AdultVariant,
+  type Lifecycle,
+} from '../domain/lifecycle'
 const props = defineProps<{
   lifecycle: Lifecycle
   disabled: boolean
+  notice?: Readonly<{
+    message: string
+    retryLabel: string
+    busy: boolean
+  }> | null
   text: {
+    choose: string
+    equal: string
+    shaping: string
+    variants: Record<AdultVariant, string>
+    traits: Record<AdultVariant, string>
     title: string
     close: string
     stages: Record<Lifecycle['stage'], string>
@@ -17,21 +31,46 @@ const props = defineProps<{
     schedule: string
   }
 }>()
-defineEmits<{ hatch: [] }>()
+defineEmits<{ hatch: []; chooseVariant: [variant: AdultVariant]; retry: [] }>()
 const details = ref<HTMLDialogElement>()
+const info = ref<HTMLButtonElement>()
+const close = ref<HTMLButtonElement>()
+const recovery = ref<HTMLButtonElement>()
+const choicesGroup = ref<HTMLDivElement>()
 const view = computed(() => lifecycleView(props.lifecycle))
+watch(
+  () => view.value.adultVariant,
+  (variant, previous) => {
+    if (variant && !previous && details.value?.open) close.value?.focus()
+  },
+  { flush: 'post' },
+)
+watch(
+  () => props.notice?.message,
+  (message, previous) => {
+    if (!details.value?.open) return
+    if (message) recovery.value?.focus()
+    else if (previous)
+      choicesGroup.value
+        ?.querySelector<HTMLButtonElement>('button:not(:disabled)')
+        ?.focus()
+  },
+  { flush: 'post' },
+)
+function restoreFocus() {
+  if (view.value.adultVariant) info.value?.focus()
+}
 </script>
 <template>
   <section class="lifecycle-panel" :aria-label="text.title">
     <div class="lifecycle-heading">
-      <button
-        class="lifecycle-info"
-        :aria-label="text.title"
-        @click="details?.showModal()"
-      >
-        ?
-      </button>
       <strong>{{ text.stages[view.stage] }}</strong>
+      <span v-if="view.adultVariant">{{
+        text.variants[view.adultVariant]
+      }}</span>
+      <button v-if="view.choices.length" @click="details?.showModal()">
+        {{ text.choose }}
+      </button>
       <span v-if="view.stage === 'baby'">{{ text.days(view.careDays) }}</span>
       <button
         v-if="view.stage === 'egg'"
@@ -39,6 +78,14 @@ const view = computed(() => lifecycleView(props.lifecycle))
         @click="$emit('hatch')"
       >
         {{ text.hatch }}
+      </button>
+      <button
+        ref="info"
+        class="lifecycle-info"
+        :aria-label="text.title"
+        @click="details?.showModal()"
+      >
+        ?
       </button>
     </div>
     <p class="lifecycle-description">{{ text[view.stage] }}</p>
@@ -51,17 +98,70 @@ const view = computed(() => lifecycleView(props.lifecycle))
     <span v-if="view.stage === 'baby'" class="lifecycle-schedule">{{
       text.schedule
     }}</span>
-    <dialog ref="details" class="settings-dialog" :aria-label="text.title">
+    <dialog
+      @close="restoreFocus"
+      ref="details"
+      class="settings-dialog"
+      :aria-label="text.title"
+    >
       <h2>{{ text.title }}</h2>
       <p>{{ text[view.stage] }}</p>
+      <p v-if="view.stage === 'baby'">{{ text.shaping }}</p>
+      <ul v-if="view.stage === 'baby'" class="variant-guide">
+        <li v-for="(score, variant) in view.scores" :key="variant">
+          <strong>{{ text.variants[variant] }}</strong
+          >: {{ text.traits[variant] }} <span>{{ score }} / 10</span>
+        </li>
+      </ul>
+      <p v-if="view.stage === 'adult'">{{ text.equal }}</p>
+      <p v-if="view.adultVariant">
+        {{ text.variants[view.adultVariant] }}:
+        {{ text.traits[view.adultVariant] }}
+      </p>
+      <div v-if="notice" class="variant-recovery">
+        <p role="alert">{{ notice.message }}</p>
+        <button ref="recovery" :disabled="notice.busy" @click="$emit('retry')">
+          {{ notice.retryLabel }}
+        </button>
+      </div>
+      <div
+        v-if="view.choices.length"
+        ref="choicesGroup"
+        class="variant-choices"
+      >
+        <button
+          v-for="variant in view.choices"
+          :key="variant"
+          :disabled="disabled"
+          @click="$emit('chooseVariant', variant)"
+        >
+          <strong>{{ text.variants[variant] }}</strong>
+          <span>{{ text.traits[variant] }}</span>
+        </button>
+      </div>
       <p v-if="view.stage === 'baby'">{{ text.schedule }}</p>
-      <button @click="details?.close()">{{ text.close }}</button>
+      <button ref="close" @click="details?.close()">{{ text.close }}</button>
     </dialog>
   </section>
 </template>
 <style scoped>
+.variant-choices {
+  display: grid;
+  gap: 8px;
+  margin: 12px 0;
+}
+.variant-choices button {
+  text-align: left;
+}
+.variant-choices span {
+  display: block;
+  font-weight: 400;
+  margin-top: 4px;
+}
 .lifecycle-info {
-  display: none;
+  display: block;
+  min-height: 24px;
+  padding: 0 7px;
 }
 .lifecycle-panel {
   flex-shrink: 0;

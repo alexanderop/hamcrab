@@ -1,8 +1,10 @@
 import * as THREE from 'three'
 
+import type { AdultVariant } from '../domain/scene-types'
 import type { CostumePalette } from '../scene-types'
 
 export interface CreatureRig {
+  setAdultVariant: (variant: AdultVariant | null) => void
   setLifeStage: (stage: 'baby' | 'adult') => void
   setPalette: (palette: CostumePalette) => void
   root: THREE.Group
@@ -193,6 +195,12 @@ export function createCreature(): CreatureRig {
   face.castShadow = true
   face.receiveShadow = true
   head.add(face)
+  const cheeks = [-1, 1].map((side) =>
+    ball(head, materials.cream, [side * 0.51, -0.23, 0.71], [0.29, 0.24, 0.18]),
+  )
+  cheeks.forEach((cheek) => {
+    cheek.visible = false
+  })
   const eyes: THREE.Group[] = []
   const lids: THREE.Mesh[] = []
   const closedEyes: THREE.Object3D[] = []
@@ -434,6 +442,11 @@ export function createCreature(): CreatureRig {
     brows,
     paws,
     claws,
+    setAdultVariant(variant) {
+      cheeks.forEach((cheek) => {
+        cheek.visible = variant === 'gourmet'
+      })
+    },
     setLifeStage(stage) {
       head.scale.setScalar(stage === 'baby' ? 1.15 : 1)
       claws.forEach((claw) => claw.scale.setScalar(stage === 'baby' ? 0.65 : 1))

@@ -1,3 +1,4 @@
+import { pendingAdult } from '../../src/features/pet/domain/lifecycle'
 import { describe, expect, it } from 'vitest'
 import {
   advancePet,
@@ -10,7 +11,7 @@ import {
 
 const createPet = (time: number): PetSnapshot => ({
   ...createEgg(time),
-  lifecycle: { stage: 'adult' as const },
+  lifecycle: pendingAdult(),
 })
 const now = 1_800_000_000_000
 

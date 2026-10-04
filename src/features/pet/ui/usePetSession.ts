@@ -1,3 +1,4 @@
+import type { AdultVariant } from '../domain/lifecycle'
 import { onMounted, onUnmounted, readonly, ref } from 'vue'
 import { parsePetName, type CareAction, type CareMessage } from '../domain/pet'
 import { InvalidPetDataError } from '../application/ports'
@@ -82,6 +83,24 @@ export function usePetSession(service: PetService) {
     }
   }
 
+  async function chooseVariant(variant: AdultVariant) {
+    if (!ready.value || busy.value || disposed || error.value) return false
+    busy.value = true
+    saved.value = false
+    try {
+      const result = await service.chooseVariant(variant)
+      if (disposed) return false
+      pet.value = result.pet
+      saved.value = true
+      return result.chosen
+    } catch (cause) {
+      if (!disposed) reportError(cause, true)
+      return false
+    } finally {
+      if (!disposed) busy.value = false
+    }
+  }
+
   async function rename(name: string) {
     if (!parsePetName(name).success) return false
     if (!ready.value || busy.value || disposed || error.value) return false
@@ -126,6 +145,7 @@ export function usePetSession(service: PetService) {
     saved: readonly(saved),
     care,
     hatch,
+    chooseVariant,
     rename,
     retry,
   }

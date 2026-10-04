@@ -9,3 +9,5 @@ export { friendshipView } from './domain/friendship'
 export { default as FriendshipPanel } from './ui/FriendshipPanel.vue'
 
 export { default as LifecyclePanel } from './ui/LifecyclePanel.vue'
+
+export { lifecycleView, type AdultVariant } from './domain/lifecycle'

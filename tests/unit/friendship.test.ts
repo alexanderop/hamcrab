@@ -1,3 +1,4 @@
+import { pendingAdult } from '../../src/features/pet/domain/lifecycle'
 import { describe, expect, it } from 'vitest'
 import {
   advancePet,
@@ -11,7 +12,7 @@ import { InvalidPetDataError } from '../../src/features/pet/application/ports'
 
 const createPet = (time: number): PetSnapshot => ({
   ...createEgg(time),
-  lifecycle: { stage: 'adult' as const },
+  lifecycle: pendingAdult(),
 })
 const day = 86_400_000
 const noon = 6 * day + day / 2
@@ -182,7 +183,7 @@ describe('saved friendship boundary', () => {
   ])('preserves legacy %i gestures as %i points', (careCount, points) => {
     expect(parseSavedPet({ ...legacy, careCount })).toEqual({
       ...legacy,
-      lifecycle: { stage: 'adult' },
+      lifecycle: pendingAdult(),
       careCount,
       friendship: {
         points,

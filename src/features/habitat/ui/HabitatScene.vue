@@ -3,6 +3,7 @@ import { onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import * as THREE from 'three'
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
 import { createSnack } from '../three/snacks'
+import type { AdultVariant } from '../domain/scene-types'
 import type { SnackKind } from '../scene-types'
 import { disposeObject } from '../three/disposeObject'
 import { createRewards } from '../three/rewards'
@@ -25,6 +26,7 @@ import {
 } from '../domain/petGesture'
 
 const props = defineProps<{
+  adultVariant?: AdultVariant | null
   lifeStage: LifeStage
   ribbon: boolean
   ball: boolean
@@ -117,15 +119,32 @@ onMounted(() => {
       },
       { immediate: true },
     )
+    const stopVariantWatch = watch(
+      () => props.adultVariant,
+      (variant) => {
+        creature.setAdultVariant(variant ?? null)
+        invalidate()
+      },
+      { immediate: true },
+    )
     creature.setPalette(props.palette)
     const rewards = createRewards()
+    const ballPosition = new THREE.Vector3()
     creature.head.add(rewards.ribbon)
     scene.add(rewards.ball, rewards.flower)
     const stopRewardWatch = watch(
-      () => [props.ribbon, props.ball, props.flower, props.lifeStage],
+      () => [
+        props.ribbon,
+        props.ball,
+        props.flower,
+        props.lifeStage,
+        props.adultVariant,
+      ],
       () => {
         rewards.ribbon.visible = props.ribbon && props.lifeStage !== 'egg'
-        rewards.ball.visible = props.ball && props.lifeStage !== 'egg'
+        rewards.ball.visible =
+          (props.ball || props.adultVariant === 'whirlwind') &&
+          props.lifeStage !== 'egg'
         rewards.flower.visible = props.flower && props.lifeStage !== 'egg'
         invalidate()
       },
@@ -324,7 +343,11 @@ onMounted(() => {
       egg.rotation.z = reducedMotion.matches ? 0 : Math.sin(time * 1.8) * 0.035
       const elapsed = Math.min(0.05, time - previousTime)
       previousTime = time
-      const sampled = sampleAnimation(animation, time)
+      const sampled = sampleAnimation(
+        animation,
+        time,
+        props.adultVariant ?? null,
+      )
       motion.value = sampled.motion
       const age = sampled.age
       const energy = sampled.energy
@@ -378,11 +401,18 @@ onMounted(() => {
         : Math.sin(time * (props.sleeping ? 1.15 : 1.45))
       const still = reducedMotion.matches
       const play = reacting && sampled.motion === 'play'
-      ballPlaying.value = play && props.ball
+      ballPlaying.value =
+        play && (props.ball || props.adultVariant === 'whirlwind')
       rewards.ball.position.x =
         0.82 + (props.ball ? sampled.ballTravel * 0.55 : 0)
       rewards.ball.position.y = 0.2 + (props.ball ? sampled.ballLift : 0)
-      rewards.ball.rotation.z = props.ball ? -sampled.ballTravel * 5 : 0
+      rewards.ball.position.z = 0.85
+
+      rewards.ball.rotation.z = sampled.juggle
+        ? time * 7
+        : props.ball
+          ? -sampled.ballTravel * 5
+          : 0
       const feed = reacting && sampled.motion === 'feed'
       const pet = reacting && sampled.motion === 'pet'
       const anticipation = play ? Math.sin(Math.min(age / 0.2, 1) * Math.PI) : 0
@@ -400,6 +430,19 @@ onMounted(() => {
         1 + rest * 0.03,
       )
       creature.root.rotation.z = sampled.roll - rest * 0.1
+      if (sampled.juggle) {
+        creature.root.updateWorldMatrix(true, false)
+        rewards.ball.position.lerp(
+          creature.root.localToWorld(
+            ballPosition.set(
+              sampled.juggle.x,
+              sampled.juggle.y,
+              sampled.juggle.z,
+            ),
+          ),
+          Math.min(1, energy * 4),
+        )
+      }
       const pose = (offset: number) => {
         const phase = (time - offset + 14) % 14
         const left =
@@ -495,6 +538,7 @@ onMounted(() => {
       stopPaletteWatch()
       stopEnvironmentWatch()
       stopRewardWatch()
+      stopVariantWatch()
       stopStageWatch()
       cancelAnimationFrame(frame)
       document.removeEventListener('visibilitychange', visibilityChanged)

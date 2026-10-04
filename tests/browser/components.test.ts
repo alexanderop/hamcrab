@@ -1,3 +1,5 @@
+import { createPet as createEgg } from '../../src/features/pet/domain/pet'
+import { pendingAdult } from '../../src/features/pet/domain/lifecycle'
 import { expect, it } from 'vitest'
 import { render } from 'vitest-browser-vue'
 import { page, userEvent } from 'vitest/browser'
@@ -143,4 +145,33 @@ it('keeps an egg after a failed hatch and can retry the same operation', async (
   await page.getByRole('button', { name: 'Hatch' }).click()
   await expect.element(page.getByText('Stage: baby')).toBeVisible()
   await expect.element(page.getByText('Gestures: 0')).toBeVisible()
+})
+
+it('keeps the pending identity visible after a failed choice write', async () => {
+  const memory = memoryPetRepository({
+    ...createEgg(1_800_000_000_000),
+    lifecycle: pendingAdult(),
+  })
+  let unavailable = false
+  const repository: PetRepository = {
+    transact(change) {
+      return unavailable
+        ? Promise.reject(new Error('Storage full'))
+        : memory.transact(change)
+    },
+  }
+  render(SessionHarness, {
+    props: {
+      service: createPetService(repository, { now: () => 1_800_000_000_000 }),
+    },
+  })
+  await expect.element(page.getByRole('status')).toHaveTextContent('Saved')
+  unavailable = true
+  await page.getByRole('button', { name: 'Choose gourmet' }).click()
+  await expect.element(page.getByRole('alert')).toHaveTextContent('save')
+  await expect.element(page.getByText('Form: pending')).toBeVisible()
+  unavailable = false
+  await page.getByRole('button', { name: 'Retry' }).click()
+  await page.getByRole('button', { name: 'Choose gourmet' }).click()
+  await expect.element(page.getByText('Form: gourmet')).toBeVisible()
 })

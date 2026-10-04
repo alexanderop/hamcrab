@@ -59,6 +59,24 @@ export const messages = {
     },
     lifecycle: {
       title: 'Growing together',
+      choose: 'Choose a form',
+      equal:
+        'Three equally lovely forms. Care needs and rewards stay the same. Your choice is permanent.',
+      shaping:
+        'Varied needed meals, play and cuddles shape your adult form. Each kind counts at most once per UTC day. Rotate foods between days. The first care on day ten decides; tied favourites let you choose.',
+      variants: {
+        gourmet: 'Gourmet',
+        whirlwind: 'Whirlwind',
+        cuddly: 'Cuddle friend',
+      },
+      traits: {
+        gourmet:
+          'Enjoys varied meals, with round cheeks and a slow, delighted nibble.',
+        whirlwind:
+          'Loves play, with bouncy greetings and juggling with a favourite ball.',
+        cuddly:
+          'Loves being stroked, leans into cuddles and waves its claws gently.',
+      },
       close: 'Close growth details',
       stages: { egg: 'Egg', baby: 'Baby', adult: 'Adult' },
       hatch: 'Help hatch',
@@ -201,6 +219,24 @@ export const messages = {
     },
     lifecycle: {
       title: 'Gemeinsam groß werden',
+      choose: 'Form wählen',
+      equal:
+        'Drei gleichwertige Formen. Pflegebedarf und Belohnungen bleiben gleich. Deine Wahl bleibt bestehen.',
+      shaping:
+        'Abwechslungsreiches nötiges Futter, Spielen und Kuscheln prägen die erwachsene Form. Jede Art zählt höchstens einmal pro UTC-Tag. Wechsle das Futter zwischen Tagen. Die erste Pflege am zehnten Tag entscheidet; bei Gleichstand wählst du.',
+      variants: {
+        gourmet: 'Genießer',
+        whirlwind: 'Wirbelwind',
+        cuddly: 'Kuschelfreund',
+      },
+      traits: {
+        gourmet:
+          'Liebt abwechslungsreiches Futter, mit runden Wangen und genüsslichem Knabbern.',
+        whirlwind:
+          'Spielt gern, hüpft zur Begrüßung und jongliert mit seinem Ball.',
+        cuddly:
+          'Wird gern gestreichelt, schmiegt sich an und winkt gemütlich mit seinen Scheren.',
+      },
       close: 'Entwicklung schließen',
       stages: { egg: 'Ei', baby: 'Baby', adult: 'Erwachsen' },
       hatch: 'Beim Schlüpfen helfen',

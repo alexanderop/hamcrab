@@ -1,3 +1,4 @@
+import { chooseAdultVariant, type AdultVariant } from '../domain/lifecycle'
 import {
   advancePet,
   careForPet,
@@ -34,6 +35,17 @@ export function createPetService(repository: PetRepository, clock: Clock) {
           value: result,
           save:
             result.accepted || current === undefined ? result.pet : undefined,
+        }
+      }),
+    chooseVariant: (variant: AdultVariant) =>
+      repository.transact((current) => {
+        const pet = current ?? createPet(clock.now())
+        const lifecycle = chooseAdultVariant(pet.lifecycle, variant)
+        const chosen = lifecycle !== pet.lifecycle
+        const updated = chosen ? { ...pet, lifecycle } : pet
+        return {
+          value: { pet: updated, chosen },
+          save: chosen ? updated : undefined,
         }
       }),
     rename: (name: string) => {

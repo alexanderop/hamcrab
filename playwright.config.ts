@@ -20,7 +20,19 @@ export default defineConfig({
     screenshot: 'only-on-failure',
   },
   projects: [
-    { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
+    {
+      name: 'chromium',
+      use: {
+        ...devices['Desktop Chrome'],
+        launchOptions: {
+          timeout: 15_000,
+          args:
+            process.env.CI && process.platform === 'linux'
+              ? ['--use-gl=angle', '--use-angle=swiftshader']
+              : [],
+        },
+      },
+    },
     { name: 'firefox', use: { ...devices['Desktop Firefox'] } },
   ],
   webServer: process.env.PLAYWRIGHT_BASE_URL

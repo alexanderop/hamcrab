@@ -1,4 +1,4 @@
-import type { CareCue, SnackKind } from './scene-types'
+import type { AdultVariant, CareCue, SnackKind } from './scene-types'
 
 export type Motion =
   | 'idle'
@@ -168,10 +168,12 @@ export type AnimationPose = {
   pawReach: number
   ballTravel: number
   ballLift: number
+  juggle: { x: number; y: number; z: number } | null
 }
 export function sampleAnimation(
   state: AnimationState,
   at: number,
+  variant: AdultVariant | null = null,
 ): AnimationPose {
   const pose: AnimationPose = {
     motion: 'idle',
@@ -191,6 +193,7 @@ export function sampleAnimation(
     pawReach: 0,
     ballTravel: 0,
     ballLift: 0,
+    juggle: null,
   }
   const env = state.environment
   if (!env.loaded || !env.visible || env.sleeping || env.reduced) return pose
@@ -283,6 +286,40 @@ export function sampleAnimation(
       pose.leftClaw = energy * 0.32
       pose.rightClaw = -energy * 0.32
       pose.eyesClosed = age > 1.9 ? energy : 0
+  }
+  if (variant === 'gourmet' && clip.kind === 'feed') {
+    pose.headPitch = Math.sin(age * 5) * 0.09 * energy
+    pose.headRoll = Math.sin(age * 3) * 0.12 * energy
+    pose.eyesClosed = Math.min(1, energy * 1.5)
+    pose.pawReach = energy * 0.7
+  }
+  if (variant === 'whirlwind') {
+    if (clip.kind === 'greet')
+      pose.y = Math.abs(Math.sin(age * 8)) * energy * 0.3
+    if (clip.kind === 'play') {
+      pose.juggle = {
+        x: Math.cos(age * 7) * 0.8,
+        y: 1.5 + Math.abs(Math.sin(age * 7)) * 1.25,
+        z: 1.05,
+      }
+      pose.leftClaw = energy * (0.8 + Math.sin(age * 7) * 0.45)
+      pose.rightClaw = -energy * (0.8 - Math.sin(age * 7) * 0.45)
+      pose.pawReach = energy * 0.5
+    }
+  }
+  if (variant === 'cuddly') {
+    if (clip.kind === 'pet') {
+      pose.x = direction * energy * 0.22
+      pose.roll = direction * energy * 0.18
+      pose.headRoll = direction * energy * 0.28
+      pose.headPitch = -energy * 0.16
+    }
+    if (clip.kind === 'greet') {
+      pose.y = 0
+      pose.leftClaw = energy * (0.45 + Math.sin(age * 3) * 0.16)
+      pose.rightClaw = -pose.leftClaw
+      pose.headRoll = energy * 0.1
+    }
   }
   return pose
 }

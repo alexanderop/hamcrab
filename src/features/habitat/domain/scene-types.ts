@@ -10,3 +10,5 @@ export type CostumePalette = Readonly<{
   shade: string
 }>
 export type SnackKind = 'pastry' | 'kebab' | 'bottle' | 'strawberry'
+
+export type AdultVariant = 'gourmet' | 'whirlwind' | 'cuddly'

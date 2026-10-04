@@ -13,8 +13,10 @@ Feature: Growing together
     Given my baby has nine earlier care days
     When I cuddle my growing friend
     Then my friend is grown up
-    When I reload my home
+    And my adult form is still "Cuddle friend"
+    When I reload my baby's home offline
     Then my friend is grown up
+    And my adult form is still "Cuddle friend"
 
   Scenario: Two homes share the same hatch
     Given a new egg is waiting for me

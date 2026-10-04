@@ -20,6 +20,7 @@ import {
 } from '../features/habitat'
 import {
   usePetSession,
+  lifecycleView,
   friendshipView,
   FriendshipPanel,
   LifecyclePanel,
@@ -41,8 +42,19 @@ const services = useServices()
 const { preferences, storageUnavailable, update } = useSettings(
   services.settings,
 )
-const { pet, ready, busy, error, message, saved, care, retry, rename, hatch } =
-  usePetSession(services.pet)
+const {
+  pet,
+  ready,
+  busy,
+  error,
+  message,
+  saved,
+  care,
+  retry,
+  rename,
+  hatch,
+  chooseVariant,
+} = usePetSession(services.pet)
 const text = computed(() =>
   messages[preferences.value.language](pet.value.name),
 )
@@ -82,10 +94,17 @@ watch(
     celebration.value = ''
   },
 )
+const lifecycle = computed(() => lifecycleView(pet.value.lifecycle))
 const sceneDescription = computed(() =>
   [
     text.value.lifecycle.scenes[pet.value.lifecycle.stage],
     text.value.scene,
+    ...(lifecycle.value.adultVariant
+      ? [
+          text.value.lifecycle.variants[lifecycle.value.adultVariant],
+          text.value.lifecycle.traits[lifecycle.value.adultVariant],
+        ]
+      : []),
     ...(pet.value.sleeping ? [text.value.sleepingScene] : []),
     ...friendship.value.unlocked.map(
       (reward) => text.value.friendship.descriptions[reward],
@@ -227,7 +246,18 @@ async function feed(food: FoodId) {
                 :lifecycle="pet.lifecycle"
                 :disabled="busy || !!error"
                 :text="text.lifecycle"
+                :notice="
+                  error
+                    ? {
+                        message: text.errors[error],
+                        retryLabel: text.retry,
+                        busy,
+                      }
+                    : null
+                "
+                @retry="retry"
                 @hatch="hatch"
+                @choose-variant="chooseVariant"
               />
               <FriendshipPanel
                 :view="friendship"
@@ -243,6 +273,7 @@ async function feed(food: FoodId) {
               <HabitatScene
                 v-if="ready"
                 :life-stage="pet.lifecycle.stage"
+                :adult-variant="lifecycle.adultVariant"
                 :palette="palettes[preferences.costumeColor]"
                 :description="sceneDescription"
                 :ribbon="ready && friendship.unlocked.includes('ribbon')"

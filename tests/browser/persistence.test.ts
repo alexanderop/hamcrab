@@ -1,3 +1,4 @@
+import { pendingAdult } from '../../src/features/pet/domain/lifecycle'
 import { afterEach, expect, it } from 'vitest'
 import Dexie from 'dexie'
 import { createDexiePetRepository } from '../../src/features/pet/adapters/dexie-pet-repository'
@@ -9,7 +10,7 @@ import { defaults } from '../../src/features/settings/domain/preferences'
 
 const createPet = (time: number) => ({
   ...createEgg(time),
-  lifecycle: { stage: 'adult' as const },
+  lifecycle: pendingAdult(),
 })
 const now = 1_800_000_000_000
 const cleanup: (() => void | Promise<unknown>)[] = []
@@ -190,7 +191,7 @@ it('migrates a friendship-bearing legacy row to adult without rewriting it', asy
   await raw.table('pets').put(legacy, 'pinchy')
   expect(await first.load()).toEqual({
     ...legacy,
-    lifecycle: { stage: 'adult' },
+    lifecycle: pendingAdult(),
   })
   expect(await raw.table('pets').get('pinchy')).toEqual(legacy)
 })
@@ -202,7 +203,14 @@ it('serializes hatch and same-day growth across browser connections', async () =
   await Promise.all([first.care({ type: 'pet' }), second.care({ type: 'pet' })])
   expect((await second.load()).lifecycle).toEqual({
     stage: 'baby',
-    careDays: [Math.floor(now / 86_400_000)],
+    days: [
+      {
+        day: Math.floor(now / 86_400_000),
+        foods: [],
+        played: false,
+        cuddled: true,
+      },
+    ],
   })
 })
 it.each([
@@ -226,3 +234,87 @@ it.each([
   )
   expect(await raw.table('pets').get('pinchy')).toEqual(corrupt)
 })
+
+it('preserves an old baby journal and offers every legacy adult a permanent choice', async () => {
+  const { first, second, raw } = database()
+  const legacy = {
+    ...createPet(now),
+    lifecycle: { stage: 'baby', careDays: [20833] },
+  }
+  await raw.table('pets').put(legacy, 'pinchy')
+  expect((await first.load()).lifecycle).toEqual({
+    stage: 'baby',
+    days: [{ day: 20833, foods: [], played: false, cuddled: false }],
+  })
+  expect(await raw.table('pets').get('pinchy')).toEqual(legacy)
+  const adult = {
+    ...createPet(now),
+    name: 'Milo',
+    careCount: 22,
+    lifecycle: { stage: 'adult' },
+  }
+  await raw.table('pets').put(adult, 'pinchy')
+  expect((await first.load()).lifecycle).toEqual(pendingAdult())
+  const results = await Promise.all([
+    first.chooseVariant('whirlwind'),
+    second.chooseVariant('cuddly'),
+  ])
+  expect(results.filter((result) => result.chosen)).toHaveLength(1)
+  const winner = results.find((result) => result.chosen)!.pet
+  expect(await second.load()).toEqual(winner)
+  expect(winner).toMatchObject({
+    name: 'Milo',
+    careCount: 22,
+    updatedAt: now,
+    fullness: 65,
+  })
+  expect((await first.chooseVariant('gourmet')).chosen).toBe(false)
+  expect(await first.load()).toEqual(winner)
+})
+it.each(['gourmet', 'whirlwind', 'cuddly'] as const)(
+  'round-trips the %s identity',
+  async (variant) => {
+    const { first, second, raw } = database()
+    await raw.table('pets').put(createPet(now), 'pinchy')
+    expect((await first.chooseVariant(variant)).chosen).toBe(true)
+    expect((await second.load()).lifecycle).toEqual({
+      stage: 'adult',
+      identity: { status: 'chosen', variant },
+    })
+  },
+)
+it.each([
+  { stage: 'adult', identity: { status: 'chosen', variant: 'unknown' } },
+  {
+    stage: 'adult',
+    identity: { status: 'pending', options: ['cuddly', 'gourmet'] },
+  },
+  {
+    stage: 'adult',
+    identity: { status: 'pending', options: ['cuddly', 'cuddly'] },
+  },
+  { stage: 'adult', identity: { status: 'pending', options: ['gourmet'] } },
+  {
+    stage: 'baby',
+    days: [
+      {
+        day: 20833,
+        foods: ['doener', 'doener'],
+        played: false,
+        cuddled: false,
+      },
+    ],
+  },
+  { stage: 'baby', careDays: [], days: [] },
+])(
+  'rejects malformed explicit variant evidence without legacy fallback %j',
+  async (lifecycle) => {
+    const { first, raw } = database()
+    const corrupt = { ...createPet(now), lifecycle }
+    await raw.table('pets').put(corrupt, 'pinchy')
+    await expect(first.chooseVariant('gourmet')).rejects.toBeInstanceOf(
+      InvalidPetDataError,
+    )
+    expect(await raw.table('pets').get('pinchy')).toEqual(corrupt)
+  },
+)
