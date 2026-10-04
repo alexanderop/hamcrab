@@ -2,11 +2,16 @@ import { describe, expect, it } from 'vitest'
 import {
   advancePet,
   careForPet,
-  createPet,
+  createPet as createEgg,
+  type PetSnapshot,
   parsePetName,
   type CareAction,
 } from '../../src/features/pet/domain/pet'
 
+const createPet = (time: number): PetSnapshot => ({
+  ...createEgg(time),
+  lifecycle: { stage: 'adult' as const },
+})
 const now = 1_800_000_000_000
 
 describe('care rules', () => {

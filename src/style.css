@@ -749,3 +749,71 @@ button:focus-visible,
   border-color: #8f9abb;
   color: #344362;
 }
+
+.pwa-settings {
+  border-top: 1px solid #b9a58b;
+  margin-top: 18px;
+  padding-top: 12px;
+  font:
+    14px/1.5 system-ui,
+    sans-serif;
+}
+.pwa-settings h3 {
+  font-size: 16px;
+  margin: 0;
+}
+.pwa-settings button,
+.pwa-notice button {
+  min-height: 44px;
+  border: 1px solid #786951;
+  border-radius: 10px;
+  padding: 8px 12px;
+  background: #fff8e9;
+  color: #342f25;
+  font: inherit;
+  cursor: pointer;
+}
+.pwa-settings > button {
+  display: block;
+  margin: 10px 0;
+}
+.pwa-settings button:disabled,
+.pwa-notice button:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+.pwa-notice {
+  position: fixed;
+  z-index: 20;
+  top: max(12px, env(safe-area-inset-top));
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(360px, calc(100vw - 24px));
+  max-height: calc(100dvh - 24px);
+  overflow: auto;
+  padding: 16px;
+  border: 2px solid #786951;
+  border-radius: 16px;
+  background: #fff4de;
+  color: #342f25;
+  box-shadow: 0 8px 24px #342f2533;
+  font:
+    14px/1.4 system-ui,
+    sans-serif;
+}
+.pwa-notice p {
+  margin: 8px 0;
+}
+.pwa-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.pwa-dialog p {
+  font:
+    15px/1.6 system-ui,
+    sans-serif;
+}
+.pwa-dialog .settings-done {
+  margin-top: 12px;
+}

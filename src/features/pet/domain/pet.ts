@@ -1,9 +1,11 @@
+import { dayLength, rewardGrowth, type Lifecycle } from './lifecycle'
 import { foods, type FoodId } from './foods'
 import {
   advanceFriendship,
   createFriendship,
   foodAvailable,
   rewardCare,
+  isUsefulCare,
   type Friendship,
 } from './friendship'
 
@@ -15,6 +17,7 @@ export type PetSnapshot = Readonly<{
   energy: number
   sleeping: boolean
   careCount: number
+  lifecycle: Lifecycle
   friendship: Friendship
   createdAt: number
   updatedAt: number
@@ -39,6 +42,7 @@ export type CareMessage =
   | 'alreadySleeping'
   | 'alreadyAwake'
   | 'foodLocked'
+  | 'egg'
 export type CareResult = {
   pet: PetSnapshot
   accepted: boolean
@@ -56,6 +60,7 @@ export function createPet(now: number): PetSnapshot {
     energy: 72,
     sleeping: false,
     careCount: 0,
+    lifecycle: { stage: 'egg' },
     friendship: createFriendship(now),
     createdAt: now,
     updatedAt: now,
@@ -63,6 +68,7 @@ export function createPet(now: number): PetSnapshot {
 }
 
 export function advancePet(pet: PetSnapshot, now: number): PetSnapshot {
+  if (pet.lifecycle.stage === 'egg') return pet
   const hours = Math.min(24, Math.max(0, now - pet.updatedAt) / 3_600_000)
   return {
     ...pet,
@@ -80,6 +86,8 @@ export function careForPet(
   now: number,
 ): CareResult {
   const pet = advancePet(snapshot, now)
+  if (pet.lifecycle.stage === 'egg')
+    return { pet, accepted: false, message: 'egg' }
   if (pet.sleeping && action.type !== 'wake' && action.type !== 'sleep') {
     return {
       pet,
@@ -111,6 +119,9 @@ export function careForPet(
     ...pet,
     careCount: pet.careCount + 1,
     friendship: rewardCare(pet, action.type),
+    lifecycle: isUsefulCare(pet, action.type)
+      ? rewardGrowth(pet.lifecycle, Math.floor(pet.updatedAt / dayLength))
+      : pet.lifecycle,
   }
   switch (action.type) {
     case 'feed': {
@@ -154,5 +165,22 @@ export function careForPet(
         accepted: true,
         message: 'wake',
       }
+  }
+}
+
+export function hatchPet(
+  pet: PetSnapshot,
+  now: number,
+): { pet: PetSnapshot; hatched: boolean } {
+  if (pet.lifecycle.stage !== 'egg') return { pet, hatched: false }
+  const updatedAt = Math.max(pet.updatedAt, now)
+  return {
+    pet: {
+      ...pet,
+      lifecycle: { stage: 'baby', careDays: [] },
+      updatedAt,
+      friendship: advanceFriendship(pet.friendship, updatedAt),
+    },
+    hatched: true,
   }
 }

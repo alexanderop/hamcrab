@@ -3,6 +3,7 @@ import * as THREE from 'three'
 import type { CostumePalette } from '../scene-types'
 
 export interface CreatureRig {
+  setLifeStage: (stage: 'baby' | 'adult') => void
   setPalette: (palette: CostumePalette) => void
   root: THREE.Group
   head: THREE.Group
@@ -433,6 +434,10 @@ export function createCreature(): CreatureRig {
     brows,
     paws,
     claws,
+    setLifeStage(stage) {
+      head.scale.setScalar(stage === 'baby' ? 1.15 : 1)
+      claws.forEach((claw) => claw.scale.setScalar(stage === 'baby' ? 0.65 : 1))
+    },
     setPalette(palette) {
       materials.shell.color.set(palette.base)
       materials.coral.color.set(palette.light)

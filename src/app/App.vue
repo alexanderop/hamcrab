@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onUnmounted, ref, watch, watchEffect } from 'vue'
+import { computed, ref, watch, watchEffect } from 'vue'
 import {
   Heart,
   Sun,
@@ -22,6 +22,7 @@ import {
   usePetSession,
   friendshipView,
   FriendshipPanel,
+  LifecyclePanel,
   FoodMenu,
   PetNameForm,
   type CareAction,
@@ -33,13 +34,14 @@ import {
   messages,
   palettes,
 } from '../features/settings'
+import { PwaPanel, usePwa } from '../features/pwa'
 import { useServices } from './services'
 
 const services = useServices()
 const { preferences, storageUnavailable, update } = useSettings(
   services.settings,
 )
-const { pet, ready, busy, error, message, saved, care, retry, rename } =
+const { pet, ready, busy, error, message, saved, care, retry, rename, hatch } =
   usePetSession(services.pet)
 const text = computed(() =>
   messages[preferences.value.language](pet.value.name),
@@ -70,7 +72,7 @@ const foodNotice = computed(() =>
       ? text.value.reactions.sleeping
       : null,
 )
-const online = ref(navigator.onLine)
+const pwa = usePwa(services.pwa)
 const friendship = computed(() => friendshipView(pet.value))
 const celebration = ref('')
 const celebrationDay = ref(-1)
@@ -82,6 +84,7 @@ watch(
 )
 const sceneDescription = computed(() =>
   [
+    text.value.lifecycle.scenes[pet.value.lifecycle.stage],
     text.value.scene,
     ...(pet.value.sleeping ? [text.value.sleepingScene] : []),
     ...friendship.value.unlocked.map(
@@ -148,15 +151,6 @@ async function feed(food: FoodId) {
   if (!accepted) return
   foodMenu.value?.close()
 }
-function updateOnline() {
-  online.value = navigator.onLine
-}
-window.addEventListener('online', updateOnline)
-window.addEventListener('offline', updateOnline)
-onUnmounted(() => {
-  window.removeEventListener('online', updateOnline)
-  window.removeEventListener('offline', updateOnline)
-})
 </script>
 
 <template>
@@ -182,7 +176,7 @@ onUnmounted(() => {
               {{ text.errors[error] }}
               <button @click="retry">{{ text.retry }}</button>
             </div>
-            <div v-if="!online" class="offline-banner">
+            <div v-if="!pwa.online" class="offline-banner">
               <WifiOff :size="16" /> {{ text.offline }}
             </div>
             <div class="screen-header">
@@ -227,17 +221,28 @@ onUnmounted(() => {
                 </div>
               </div>
             </div>
-            <FriendshipPanel
-              :view="friendship"
-              :ready="ready"
-              :loading="text.loading"
-              :text="text.friendship"
-              :celebration="
-                celebrationDay === pet.friendship.daily.day ? celebration : ''
-              "
-            />
+            <div class="growth-panels">
+              <LifecyclePanel
+                v-if="ready"
+                :lifecycle="pet.lifecycle"
+                :disabled="busy || !!error"
+                :text="text.lifecycle"
+                @hatch="hatch"
+              />
+              <FriendshipPanel
+                :view="friendship"
+                :ready="ready"
+                :loading="text.loading"
+                :text="text.friendship"
+                :celebration="
+                  celebrationDay === pet.friendship.daily.day ? celebration : ''
+                "
+              />
+            </div>
             <div class="scene-wrap">
               <HabitatScene
+                v-if="ready"
+                :life-stage="pet.lifecycle.stage"
                 :palette="palettes[preferences.costumeColor]"
                 :description="sceneDescription"
                 :ribbon="ready && friendship.unlocked.includes('ribbon')"
@@ -247,8 +252,10 @@ onUnmounted(() => {
                 :fallback-description="text.no3d"
                 :sleeping="pet.sleeping"
                 :reaction="reaction"
-                :loaded="ready"
-                :available="ready && !busy && !error"
+                :loaded="ready && pet.lifecycle.stage !== 'egg'"
+                :available="
+                  ready && !busy && !error && pet.lifecycle.stage !== 'egg'
+                "
                 @pet="act('pet')"
               /><span class="scene-caption">{{
                 pet.sleeping ? text.sweetDreams : text.hello
@@ -257,7 +264,13 @@ onUnmounted(() => {
             <div class="screen-tools">
               <span><Rotate3d :size="13" /> {{ text.rotate }}</span
               ><button
-                :disabled="!ready || busy || !!error || pet.sleeping"
+                :disabled="
+                  !ready ||
+                  busy ||
+                  !!error ||
+                  pet.lifecycle.stage === 'egg' ||
+                  pet.sleeping
+                "
                 @click="act('pet')"
               >
                 <Heart :size="13" /> {{ text.pet }}
@@ -290,7 +303,13 @@ onUnmounted(() => {
             <button
               class="care-button"
               :aria-label="text.feed"
-              :disabled="!ready || busy || !!error || pet.sleeping"
+              :disabled="
+                !ready ||
+                busy ||
+                !!error ||
+                pet.lifecycle.stage === 'egg' ||
+                pet.sleeping
+              "
               @click="foodMenu?.open()"
             >
               <Utensils :size="26" /></button
@@ -302,7 +321,12 @@ onUnmounted(() => {
               class="care-button"
               :aria-label="text.play"
               :disabled="
-                !ready || busy || !!error || pet.sleeping || pet.energy < 10
+                !ready ||
+                busy ||
+                !!error ||
+                pet.lifecycle.stage === 'egg' ||
+                pet.sleeping ||
+                pet.energy < 10
               "
               @click="act('play')"
             >
@@ -314,7 +338,9 @@ onUnmounted(() => {
             <button
               class="care-button"
               :aria-label="pet.sleeping ? text.wake : text.sleep"
-              :disabled="!ready || busy || !!error"
+              :disabled="
+                !ready || busy || !!error || pet.lifecycle.stage === 'egg'
+              "
               @click="act(pet.sleeping ? 'wake' : 'sleep')"
             >
               <component :is="pet.sleeping ? Sun : Moon" :size="26" /></button
@@ -330,7 +356,13 @@ onUnmounted(() => {
         ref="foodMenu"
         :selected="selectedFood"
         :available-foods="friendship.availableFoods"
-        :disabled="!ready || busy || !!error || pet.sleeping"
+        :disabled="
+          !ready ||
+          busy ||
+          !!error ||
+          pet.lifecycle.stage === 'egg' ||
+          pet.sleeping
+        "
         :notice="foodNotice"
         :text="text.food"
         :meters="text"
@@ -357,7 +389,47 @@ onUnmounted(() => {
           :save="rename"
           :text="text.name"
         />
+        <template #app>
+          <PwaPanel
+            :service="services.pwa"
+            :language="preferences.language"
+            mode="settings"
+            :busy="busy || !ready"
+          />
+        </template>
       </SettingsPanel>
+      <PwaPanel
+        :service="services.pwa"
+        :language="preferences.language"
+        mode="notices"
+        :busy="busy || !ready"
+      />
     </section>
   </main>
 </template>
+
+<style scoped>
+.growth-panels {
+  display: contents;
+}
+@media (max-height: 600px) and (min-aspect-ratio: 6/5) {
+  .growth-panels {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 5px;
+    flex-shrink: 0;
+  }
+}
+@media (max-height: 600px) and (max-aspect-ratio: 6/5) {
+  .device-shell {
+    grid-template-rows: auto minmax(0, 1fr) auto;
+  }
+  .device-brand {
+    padding: 0;
+  }
+  .device-brand small,
+  .shell-bottom {
+    display: none;
+  }
+}
+</style>

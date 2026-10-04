@@ -6,7 +6,7 @@ Hamcrab soll bei kurzen Besuchen Freude machen. Pinchy reagiert auf Pflege, beko
 
 Freundschaft misst gemeinsame Erlebnisse. Freundschaftspunkte schalten Futter, Accessoires und Gegenstände frei. Sie bleiben nach einer Pause erhalten.
 
-Entwicklung beschreibt Pinchys Lebensphase. Das Konzept unterscheidet Ei, Baby, Kind, Jugendlich und Erwachsen. Diese Entwicklung ist eine spätere Erweiterung. Die erste Ausbaustufe verändert Pinchys Lebensphase noch nicht.
+Entwicklung beschreibt Pinchys Lebensphase. Neue Spielstände beginnen als Ei, schlüpfen auf Knopfdruck und wachsen nach zehn Pflegetagen vom Baby zum Erwachsenen. Freundschaftspunkte und Pflegetage sind unabhängig. Kind, Jugendlicher und verzweigte Formen bleiben spätere Ideen.
 
 Die Bildreferenz zeigt die Idee einer Entwicklung durch Lebensraum und Nahrung. Hamcrab verwendet dafür eigene Figuren und Animationen. Pinchy bleibt als Hamster im Krabbenkostüm erkennbar.
 
@@ -30,19 +30,23 @@ Sinnvolle Pflege gibt Punkte. Wiederholungen haben eine Grenze. Füttern bei vol
 
 ## Entwicklung vom Ei zum erwachsenen Hamcrab
 
-Die folgenden Stufen sind ein Entwurf für eine spätere Erweiterung. Die Zeitangaben sind erste Spieltestziele, keine bereits implementierten Regeln.
+Diese drei Stufen sind implementiert.
 
-| Stufe      | Vorgeschlagener Auslöser                                                       | Aussehen und Verhalten                                  | Neuer Spielmoment                                                   |
-| ---------- | ------------------------------------------------------------------------------ | ------------------------------------------------------- | ------------------------------------------------------------------- |
-| Ei         | Beginn eines neuen Spielstands                                                 | Kleines gesprenkeltes Ei mit sichtbarer Bewegung        | Eine Berührung startet das Schlüpfen ohne lange Wartezeit           |
-| Baby       | Nach dem Schlüpfen                                                             | Runder Körper, große Augen, kleine Scheren              | Die erste Pflege erzeugt eine unmittelbare Reaktion                 |
-| Kind       | Pflege an zwei verschiedenen Tagen                                             | Größerer Körper, erste ausgeprägte Kostümdetails        | Erste Vorlieben werden sichtbar                                     |
-| Jugendlich | Pflege an fünf verschiedenen Tagen                                             | Längere Fühler, lebhaftere Bewegungen                   | Wiederholte Interessen zeichnen eine Entwicklungsrichtung ab        |
-| Erwachsen  | Pflege an zehn verschiedenen Tagen und unterschiedliche gemeinsame Aktivitäten | Eine eigene erwachsene Variante mit passender Animation | Weitere Freundschaftsbelohnungen und Sammlungen bleiben interessant |
+| Stufe     | Auslöser                               | Sichtbares Ergebnis                                                                            |
+| --------- | -------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| Ei        | Neuer Spielstand                       | Gesprenkeltes Ei mit Riss und kleinen Scheren. **Beim Schlüpfen helfen** öffnet es.            |
+| Baby      | Einmaliges Schlüpfen                   | Kleinere Figur mit größerem Kopf und kleinen Scheren. Die Anzeige zählt gemeinsame Pflegetage. |
+| Erwachsen | Zehn verschiedene sinnvolle Pflegetage | Die bisherige erwachsene Figur. Freundschaft und Freischaltungen gehen weiter.                 |
 
-Pflege an verschiedenen Tagen verhindert, dass hundert schnelle Klicks ein Baby sofort erwachsen machen. Die Tage müssen nicht aufeinanderfolgen. Pinchy altert während einer langen Pause nicht ungesehen durch alle Stufen.
+Ein Pflegetag zählt durch Streicheln, Füttern unter 85 Sättigung oder Spielen unter 90 Zufriedenheit. Die Prüfung verwendet die Bedürfnisse unmittelbar vor der Pflege. Abgelehnte Aktionen, Schlafen und Wecken zählen nicht. Ein Tag zählt höchstens einmal. Der Wechsel erfolgt um 00:00 UTC, auch bei anderer lokaler Zeitzone.
 
-Ein Übergang wird beim nächsten Besuch als kurzer Moment gezeigt. Bei reduzierter Bewegung erscheint die neue Form mit einer Textmeldung. Bestehende erwachsene Figuren werden bei Einführung des Systems nicht in ein Ei zurückverwandelt.
+Die Tage müssen nicht aufeinanderfolgen. Abwesenheit erzeugt keine Pflegetage und nimmt keinen Fortschritt weg. Eier verlieren keine Bedürfnisse. Schlüpfen vergibt weder Freundschaftspunkte noch Pflegetage oder Pflegegesten. Wiederholtes Schlüpfen, auch in zwei Tabs, verändert ein bereits geschlüpftes Tier nicht.
+
+Das Baby speichert höchstens neun sortierte, verschiedene UTC-Tage. Beim zehnten Tag wird es erwachsen. Eine zurückgestellte Uhr dupliziert keinen Pflegetag. Der Freundschaftsdeckel von 100 Punkten stoppt das Wachstum nicht.
+
+Schlüpfen und Erwachsenwerden zeigen eine kurze Größenanimation und eine Textmeldung. Reduzierte Bewegung zeigt die neue Form sofort. Ohne WebGL bleiben Lebensphase, Pflegetage und Schlüpfen zugänglich.
+
+Bestehende Spielstände ohne Lebensphase werden beim Lesen als erwachsen verstanden. Bedürfnisse, Name und Freundschaft bleiben erhalten. Lesen schreibt alte Datensätze nicht um. Fehlerhafte vorhandene Lebensphasen lösen einen Speicherfehler aus und bleiben unverändert. Datenbankname, Schlüssel und Schemaversion bleiben gleich.
 
 ## Erlebnisse prägen die spätere Form
 
@@ -64,7 +68,7 @@ Ein Besuch beginnt mit Pinchys Reaktion und dem Tageswunsch. Danach folgt eine k
 
 Nach der ersten Ausbaustufe ergänzen Ausflüge diesen Ablauf. Ein Strandausflug liefert beim nächsten Besuch eine Muschel mit einer kurzen Geschichte. Das Ergebnis wartet ohne Ablaufdatum. Ein Album zeigt entdeckte Muscheln und garantiert nach mehreren Duplikaten einen neuen Fund.
 
-Ausflüge, Muschelalbum, verzweigte Formen und Lebensphasen gehören nicht zur ersten Implementierung. Sie brauchen jeweils eigene Inhalte und Spieltests. Es gibt keine verlorenen Serien, keinen Tod durch Abwesenheit und keine kostenpflichtigen Beschleuniger in diesem Konzept.
+Ausflüge, Muschelalbum, Kind und Jugendlicher sowie verzweigte Formen gehören nicht zur aktuellen Implementierung. Sie brauchen jeweils eigene Inhalte und Spieltests. Es gibt keine verlorenen Serien, keinen Tod durch Abwesenheit und keine kostenpflichtigen Beschleuniger in diesem Konzept.
 
 ## Spieltests vor weiteren Inhalten
 

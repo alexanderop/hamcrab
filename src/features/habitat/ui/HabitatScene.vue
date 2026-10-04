@@ -6,9 +6,10 @@ import { createSnack } from '../three/snacks'
 import type { SnackKind } from '../scene-types'
 import { disposeObject } from '../three/disposeObject'
 import { createRewards } from '../three/rewards'
+import { createEgg } from '../three/egg'
 import { createCreature } from '../three/creature'
 import { createSleepNest } from '../three/sleepNest'
-import type { CostumePalette, CareCue } from '../scene-types'
+import type { CostumePalette, CareCue, LifeStage } from '../scene-types'
 import {
   initialAnimation,
   updateEnvironment,
@@ -24,6 +25,7 @@ import {
 } from '../domain/petGesture'
 
 const props = defineProps<{
+  lifeStage: LifeStage
   ribbon: boolean
   ball: boolean
   flower: boolean
@@ -97,16 +99,34 @@ onMounted(() => {
     }
     controls.addEventListener('change', invalidate)
     const creature = createCreature()
+    const egg = createEgg()
+    const morphology = new THREE.Group()
+    morphology.add(creature.root)
+    scene.add(morphology, egg)
+    let transitionStart = -10
+    let transitionPending = false
+    const stopStageWatch = watch(
+      () => props.lifeStage,
+      (stage, previous) => {
+        egg.visible = stage === 'egg'
+        morphology.visible = stage !== 'egg'
+        morphology.scale.setScalar(stage === 'baby' ? 0.72 : 1)
+        creature.setLifeStage(stage === 'baby' ? 'baby' : 'adult')
+        transitionPending = previous !== undefined && previous !== stage
+        invalidate()
+      },
+      { immediate: true },
+    )
     creature.setPalette(props.palette)
     const rewards = createRewards()
     creature.head.add(rewards.ribbon)
     scene.add(rewards.ball, rewards.flower)
     const stopRewardWatch = watch(
-      () => [props.ribbon, props.ball, props.flower],
+      () => [props.ribbon, props.ball, props.flower, props.lifeStage],
       () => {
-        rewards.ribbon.visible = props.ribbon
-        rewards.ball.visible = props.ball
-        rewards.flower.visible = props.flower
+        rewards.ribbon.visible = props.ribbon && props.lifeStage !== 'egg'
+        rewards.ball.visible = props.ball && props.lifeStage !== 'egg'
+        rewards.flower.visible = props.flower && props.lifeStage !== 'egg'
         invalidate()
       },
       { immediate: true },
@@ -121,7 +141,6 @@ onMounted(() => {
     const snackHolder = new THREE.Group()
     snackHolder.visible = false
     creature.root.add(snackHolder)
-    scene.add(creature.root)
     const ambient = new THREE.HemisphereLight('#fff0df', '#99a888', 1.25)
     scene.add(ambient)
     const nest = createSleepNest()
@@ -227,6 +246,7 @@ onMounted(() => {
     const canvas = renderer.domElement
     let gesture: PetGesture | null = null
     const hitCreature = (event: PointerEvent) => {
+      if (props.lifeStage === 'egg') return false
       const bounds = canvas.getBoundingClientRect()
       pointer.set(
         ((event.clientX - bounds.left) / bounds.width) * 2 - 1,
@@ -281,6 +301,7 @@ onMounted(() => {
 
     rotate = (direction) => {
       creature.root.rotation.y += direction * 0.2
+      egg.rotation.y += direction * 0.2
       invalidate()
     }
     const animate = () => {
@@ -290,6 +311,17 @@ onMounted(() => {
         syncEnvironment()
       }
       const time = clock.getElapsedTime()
+      if (transitionPending) {
+        transitionStart = time
+        transitionPending = false
+      }
+      const reveal = reducedMotion.matches
+        ? 1
+        : THREE.MathUtils.smoothstep(time - transitionStart, 0, 0.8)
+      const size = props.lifeStage === 'baby' ? 0.72 : 1
+      morphology.scale.setScalar(size * (0.85 + reveal * 0.15))
+      morphology.position.y = Math.sin(reveal * Math.PI) * 0.2
+      egg.rotation.z = reducedMotion.matches ? 0 : Math.sin(time * 1.8) * 0.035
       const elapsed = Math.min(0.05, time - previousTime)
       previousTime = time
       const sampled = sampleAnimation(animation, time)
@@ -463,6 +495,7 @@ onMounted(() => {
       stopPaletteWatch()
       stopEnvironmentWatch()
       stopRewardWatch()
+      stopStageWatch()
       cancelAnimationFrame(frame)
       document.removeEventListener('visibilitychange', visibilityChanged)
       reducedMotion.removeEventListener('change', syncEnvironment)
@@ -498,6 +531,7 @@ onBeforeUnmount(() => cleanup?.())
     class="habitat-scene"
     :class="{ sleeping }"
     :data-sleeping="sleeping"
+    :data-life-stage="lifeStage"
     :data-renderer="status"
     :data-snack="activeSnack"
     :data-motion="motion"
@@ -534,7 +568,7 @@ onBeforeUnmount(() => cleanup?.())
       <span>z</span><span>z</span><span>Z</span>
     </div>
     <div v-if="status === 'fallback'" class="habitat-fallback">
-      <span aria-hidden="true">🐹</span>
+      <span aria-hidden="true">{{ lifeStage === 'egg' ? '🥚' : '🐹' }}</span>
       <p>
         {{ fallbackTitle }}<br /><small>{{ fallbackDescription }}</small>
       </p>

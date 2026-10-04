@@ -80,6 +80,7 @@ it('shows a storage error, blocks care, and recovers through retry', async () =>
   available = true
   await page.getByRole('button', { name: 'Retry' }).click()
   await expect.element(page.getByRole('button', { name: 'Play' })).toBeEnabled()
+  await page.getByRole('button', { name: 'Hatch' }).click()
   await page.getByRole('button', { name: 'Play' }).click()
   await expect.element(page.getByText('Gestures: 1')).toBeVisible()
   await page.getByRole('button', { name: 'Rename' }).click()
@@ -87,7 +88,7 @@ it('shows a storage error, blocks care, and recovers through retry', async () =>
   await expect.element(page.getByRole('status')).toHaveTextContent('Saved')
 })
 
-it.each(['Play', 'Rename'])(
+it.each(['Play', 'Rename', 'Hatch'])(
   'keeps saved state intact when %s cannot be persisted',
   async (action) => {
     let unavailable = false
@@ -105,6 +106,10 @@ it.each(['Play', 'Rename'])(
       },
     })
     await expect.element(page.getByRole('status')).toHaveTextContent('Saved')
+    if (action === 'Play') {
+      await page.getByRole('button', { name: 'Hatch' }).click()
+      await expect.element(page.getByText('Stage: baby')).toBeVisible()
+    }
     unavailable = true
     await page.getByRole('button', { name: action }).click()
     await expect.element(page.getByRole('alert')).toHaveTextContent('save')
@@ -115,3 +120,27 @@ it.each(['Play', 'Rename'])(
       .toBeDisabled()
   },
 )
+
+it('keeps an egg after a failed hatch and can retry the same operation', async () => {
+  let unavailable = false
+  const memory = memoryPetRepository()
+  const repository: PetRepository = {
+    transact: (change) =>
+      unavailable ? Promise.reject(new Error('full')) : memory.transact(change),
+  }
+  render(SessionHarness, {
+    props: {
+      service: createPetService(repository, { now: () => 1_800_000_000_000 }),
+    },
+  })
+  await expect.element(page.getByRole('status')).toHaveTextContent('Saved')
+  unavailable = true
+  await page.getByRole('button', { name: 'Hatch' }).click()
+  await expect.element(page.getByRole('alert')).toHaveTextContent('save')
+  await expect.element(page.getByText('Stage: egg')).toBeVisible()
+  unavailable = false
+  await page.getByRole('button', { name: 'Retry' }).click()
+  await page.getByRole('button', { name: 'Hatch' }).click()
+  await expect.element(page.getByText('Stage: baby')).toBeVisible()
+  await expect.element(page.getByText('Gestures: 0')).toBeVisible()
+})

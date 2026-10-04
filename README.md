@@ -38,7 +38,9 @@ Das Zahnrad im Display öffnet die Einstellungen. Englisch ist die Standardsprac
 
 In den Einstellungen lässt sich auch der Name ändern: einen Namen mit 1–24 Zeichen eingeben und „Namen speichern“ wählen. Der neue Name erscheint im Display, in den Reaktionen und im Futtermenü. Er bleibt mit dem Spielstand offline erhalten; Umbenennen zählt nicht als Pflegeaktion und weckt ein schlafendes Tier nicht auf. Nicht gespeicherte Namensentwürfe werden beim Schließen verworfen.
 
-Nach einem vollständigen ersten Laden speichert der Service Worker die Anwendung für Offline-Besuche. Die Installation hängt vom Browser ab. Die Installation erfolgt über das Browsermenü. Es gibt keinen Server und keine externen Laufzeitressourcen.
+Nach einem vollständigen ersten Laden speichert der Service Worker die Anwendung für Offline-Besuche. Unter „App & offline“ in den Einstellungen stehen Offline-Bereitschaft, Installationshilfe und eine manuelle Update-Suche. Unterstützte Browser öffnen auf Wunsch ihren Installationsdialog; ansonsten gibt es Anleitungen für iOS, Android und Desktop. Auf Mobilgeräten erscheint ein Installationshinweis, der sich für sieben Tage ausblenden lässt.
+
+Neue Versionen werden angekündigt und erst mit „Jetzt aktualisieren“ aktiviert. Der Hinweis lässt sich für die laufende Sitzung um eine Stunde verschieben; das Update bleibt in den Einstellungen erreichbar. Nach der Rückkehr zur App wird online erneut nach Updates gesucht, höchstens einmal pro Minute. Gespeicherter Fortschritt bleibt beim Aktualisieren erhalten. Es gibt keinen Server und keine externen Laufzeitressourcen.
 
 ## Prüfen
 

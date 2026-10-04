@@ -83,6 +83,7 @@ defineExpose({
         </label>
       </div>
     </fieldset>
+    <slot name="app" />
     <p v-if="storageUnavailable" role="alert" class="settings-note">
       {{ text.settingsUnsaved }}
     </p>

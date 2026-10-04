@@ -2,6 +2,7 @@ import {
   advancePet,
   careForPet,
   createPet,
+  hatchPet,
   parsePetName,
   type CareAction,
 } from '../domain/pet'
@@ -18,6 +19,12 @@ export function createPetService(repository: PetRepository, clock: Clock) {
           value: advancePet(pet, now),
           save: current === undefined ? pet : undefined,
         }
+      }),
+    hatch: () =>
+      repository.transact((current) => {
+        const now = clock.now()
+        const result = hatchPet(current ?? createPet(now), now)
+        return { value: result, save: result.hatched ? result.pet : undefined }
       }),
     care: (action: CareAction) =>
       repository.transact((current) => {

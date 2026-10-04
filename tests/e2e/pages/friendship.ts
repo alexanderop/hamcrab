@@ -21,6 +21,14 @@ export class FriendshipPage {
   async visit(date = '2026-01-01T12:00:00Z') {
     await this.page.clock.setFixedTime(new Date(date))
     await this.page.goto('./')
+    const hatch = this.page.getByRole('button', {
+      name: 'Help hatch',
+      exact: true,
+    })
+    await expect(this.page.getByRole('status')).toContainText(
+      'Your progress is saved',
+    )
+    if (await hatch.isVisible()) await hatch.click()
     await expect(
       this.page.getByRole('button', { name: 'Feed', exact: true }),
     ).toBeEnabled()

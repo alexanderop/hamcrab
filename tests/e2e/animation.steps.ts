@@ -12,6 +12,7 @@ async function openHome(page: Page, reduced: boolean) {
   })
   await stopClock(page)
   await page.goto('./', { waitUntil: 'domcontentloaded' })
+  await page.getByRole('button', { name: 'Help hatch', exact: true }).click()
   await expect(
     page.getByRole('button', { name: 'Feed', exact: true }),
   ).toBeEnabled()

@@ -86,12 +86,7 @@ export function rewardCare(
 ): Friendship {
   const { friendship } = pet
   if (action === 'sleep' || action === 'wake') return friendship
-  const useful =
-    action === 'feed'
-      ? pet.fullness < 85
-      : action === 'play'
-        ? pet.happiness < 90
-        : true
+  const useful = isUsefulCare(pet, action)
   const limit = action === 'pet' ? 1 : 2
   const award = useful && friendship.daily[action] < limit
   const completesWish =
@@ -108,4 +103,15 @@ export function rewardCare(
       wishCompleted: friendship.daily.wishCompleted || completesWish,
     },
   }
+}
+
+export function isUsefulCare(
+  pet: { fullness: number; happiness: number },
+  action: 'feed' | 'play' | 'pet' | 'sleep' | 'wake',
+): boolean {
+  return action === 'feed'
+    ? pet.fullness < 85
+    : action === 'play'
+      ? pet.happiness < 90
+      : action === 'pet'
 }

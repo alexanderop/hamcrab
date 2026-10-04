@@ -8,7 +8,7 @@ export default defineConfig({
   plugins: [
     vue(),
     VitePWA({
-      registerType: 'autoUpdate',
+      registerType: 'prompt',
       manifest: {
         name: 'Hamcrab • Your 3D pocket friend',
         short_name: 'Hamcrab',
@@ -37,6 +37,7 @@ export default defineConfig({
         ],
       },
       workbox: {
+        clientsClaim: true,
         globPatterns: ['**/*.{js,css,html,svg,png,woff,woff2}'],
         maximumFileSizeToCacheInBytes: 4000000,
       },

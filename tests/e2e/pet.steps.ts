@@ -4,6 +4,9 @@ import { expect, type Page } from '@playwright/test'
 const { Given, When, Then } = createBdd()
 async function visit(page: Page) {
   await page.goto('./', { waitUntil: 'domcontentloaded' })
+  const hatch = page.getByRole('button', { name: 'Help hatch', exact: true })
+  await expect(page.getByRole('status')).toContainText('Your progress is saved')
+  if (await hatch.isVisible()) await hatch.click()
   await expect(page.getByRole('button', { name: 'Feed' })).toBeEnabled()
 }
 Given('I visit my new companion', async ({ page }) => {

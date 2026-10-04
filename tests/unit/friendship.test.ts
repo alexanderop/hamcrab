@@ -2,12 +2,17 @@ import { describe, expect, it } from 'vitest'
 import {
   advancePet,
   careForPet,
-  createPet,
+  createPet as createEgg,
+  type PetSnapshot,
 } from '../../src/features/pet/domain/pet'
 import { friendshipView } from '../../src/features/pet/domain/friendship'
 import { parseSavedPet } from '../../src/features/pet/adapters/saved-pet-schema'
 import { InvalidPetDataError } from '../../src/features/pet/application/ports'
 
+const createPet = (time: number): PetSnapshot => ({
+  ...createEgg(time),
+  lifecycle: { stage: 'adult' as const },
+})
 const day = 86_400_000
 const noon = 6 * day + day / 2
 const legacy = {
@@ -177,6 +182,7 @@ describe('saved friendship boundary', () => {
   ])('preserves legacy %i gestures as %i points', (careCount, points) => {
     expect(parseSavedPet({ ...legacy, careCount })).toEqual({
       ...legacy,
+      lifecycle: { stage: 'adult' },
       careCount,
       friendship: {
         points,

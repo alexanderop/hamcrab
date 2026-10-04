@@ -3,10 +3,14 @@ import Dexie from 'dexie'
 import { createDexiePetRepository } from '../../src/features/pet/adapters/dexie-pet-repository'
 import { createPetService } from '../../src/features/pet/application/pet-service'
 import { InvalidPetDataError } from '../../src/features/pet/application/ports'
-import { createPet } from '../../src/features/pet/domain/pet'
+import { createPet as createEgg } from '../../src/features/pet/domain/pet'
 import { createLocalPreferencesStore } from '../../src/features/settings/adapters/local-preferences-store'
 import { defaults } from '../../src/features/settings/domain/preferences'
 
+const createPet = (time: number) => ({
+  ...createEgg(time),
+  lifecycle: { stage: 'adult' as const },
+})
 const now = 1_800_000_000_000
 const cleanup: (() => void | Promise<unknown>)[] = []
 afterEach(async () => {
@@ -35,6 +39,7 @@ function database() {
 
 it('serializes care and rename across independent IndexedDB connections', async () => {
   const { first, second } = database()
+  await first.hatch()
   await Promise.all([
     first.care({ type: 'feed', food: 'doener' }),
     second.care({ type: 'play' }),
@@ -101,6 +106,7 @@ it.each([
 })
 it('does not commit a failed transaction or rejected care', async () => {
   const { first, repository, raw } = database()
+  await first.hatch()
   await first.care({ type: 'sleep' })
   const stored = await raw.table('pets').get('pinchy')
   await expect(
@@ -176,4 +182,47 @@ it('awards one wish bonus when two homes play concurrently', async () => {
     daily: { play: 0, wishCompleted: true },
   })
   expect((await second.load()).careCount).toBe(2)
+})
+
+it('migrates a friendship-bearing legacy row to adult without rewriting it', async () => {
+  const { first, raw } = database()
+  const { lifecycle: _, ...legacy } = createPet(now)
+  await raw.table('pets').put(legacy, 'pinchy')
+  expect(await first.load()).toEqual({
+    ...legacy,
+    lifecycle: { stage: 'adult' },
+  })
+  expect(await raw.table('pets').get('pinchy')).toEqual(legacy)
+})
+it('serializes hatch and same-day growth across browser connections', async () => {
+  const { first, second } = database()
+  const results = await Promise.all([first.hatch(), second.hatch()])
+  expect(results.filter((result) => result.hatched)).toHaveLength(1)
+  expect((await first.load()).careCount).toBe(0)
+  await Promise.all([first.care({ type: 'pet' }), second.care({ type: 'pet' })])
+  expect((await second.load()).lifecycle).toEqual({
+    stage: 'baby',
+    careDays: [Math.floor(now / 86_400_000)],
+  })
+})
+it.each([
+  null,
+  { stage: 'unknown' },
+  { stage: 'egg', careDays: [] },
+  { stage: 'baby', careDays: [20833, 20833] },
+  { stage: 'baby', careDays: [20834] },
+  {
+    stage: 'baby',
+    careDays: Array.from({ length: 10 }, (_, index) => 20824 + index),
+  },
+])('does not overwrite a present invalid lifecycle %j', async (lifecycle) => {
+  const { first, raw } = database()
+  const corrupt = { ...createPet(now), lifecycle }
+  await raw.table('pets').put(corrupt, 'pinchy')
+  await expect(first.load()).rejects.toBeInstanceOf(InvalidPetDataError)
+  await expect(first.hatch()).rejects.toBeInstanceOf(InvalidPetDataError)
+  await expect(first.care({ type: 'pet' })).rejects.toBeInstanceOf(
+    InvalidPetDataError,
+  )
+  expect(await raw.table('pets').get('pinchy')).toEqual(corrupt)
 })

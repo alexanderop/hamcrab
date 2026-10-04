@@ -12,6 +12,7 @@ it('creates a new companion once and restores the latest saved state', async () 
   const repository = memoryPetRepository()
   const service = createPetService(repository, { now: () => now })
   expect(await service.load()).toEqual(createPet(now))
+  await service.hatch()
   await service.care({ type: 'feed', food: 'doener' })
   expect(
     await createPetService(repository, { now: () => now }).load(),
@@ -20,6 +21,7 @@ it('creates a new companion once and restores the latest saved state', async () 
 it('renames a sleeping companion without changing its saved care history', async () => {
   let time = now
   const service = createPetService(memoryPetRepository(), { now: () => time })
+  await service.hatch()
   await service.care({ type: 'sleep' })
   time += 7_200_000
   expect(await service.rename('  Schlummer  ')).toMatchObject({
@@ -47,6 +49,7 @@ it('uses the latest stored state when deciding whether a meal is allowed', async
   const first = createPetService(repo, { now: () => now })
   const second = createPetService(repo, { now: () => now })
   await first.load()
+  await first.hatch()
   await second.care({ type: 'sleep' })
   expect(await first.care({ type: 'feed', food: 'doener' })).toMatchObject({
     accepted: false,

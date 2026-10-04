@@ -8,7 +8,7 @@ export function usePetSession(service: PetService) {
   const ready = ref(false)
   const busy = ref(false)
   const error = ref<'invalid' | 'save' | 'load' | null>(null)
-  const message = ref<CareMessage | 'welcome'>('welcome')
+  const message = ref<CareMessage | 'welcome' | 'hatched' | 'grown'>('welcome')
   const saved = ref(false)
   let disposed = false
   let timer: ReturnType<typeof setInterval> | undefined
@@ -47,11 +47,33 @@ export function usePetSession(service: PetService) {
     try {
       const result = await service.care(action)
       if (disposed) return false
+      const grew =
+        pet.value.lifecycle.stage === 'baby' &&
+        result.pet.lifecycle.stage === 'adult'
       pet.value = result.pet
-      message.value = result.message
+      message.value = grew ? 'grown' : result.message
       error.value = null
       saved.value = true
       return result.accepted
+    } catch (cause) {
+      if (!disposed) reportError(cause, true)
+      return false
+    } finally {
+      if (!disposed) busy.value = false
+    }
+  }
+
+  async function hatch() {
+    if (!ready.value || busy.value || disposed || error.value) return false
+    busy.value = true
+    saved.value = false
+    try {
+      const result = await service.hatch()
+      if (disposed) return false
+      pet.value = result.pet
+      if (result.hatched) message.value = 'hatched'
+      saved.value = true
+      return result.hatched
     } catch (cause) {
       if (!disposed) reportError(cause, true)
       return false
@@ -103,6 +125,7 @@ export function usePetSession(service: PetService) {
     message: readonly(message),
     saved: readonly(saved),
     care,
+    hatch,
     rename,
     retry,
   }
