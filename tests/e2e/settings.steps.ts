@@ -94,6 +94,15 @@ When('I switch the language to German', async ({ page }) => {
   await settings.close()
 })
 
+When('I personalise my home in German', async ({ page }) => {
+  const settings = new SettingsPage(page)
+  await settings.open()
+  await settings.choose('Case colour', 'Ocean')
+  await settings.choose('Crab costume', 'Lilac')
+  await settings.choose('Language', 'Deutsch')
+  await settings.close()
+})
+
 Then('the current care message and controls speak German', async ({ page }) => {
   await expect(page.locator('html')).toHaveAttribute('lang', 'de')
   await expect(page.getByRole('button', { name: 'Füttern' })).toBeEnabled()
