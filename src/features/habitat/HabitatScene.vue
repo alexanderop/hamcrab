@@ -117,7 +117,7 @@ onMounted(() => {
       const energy = reacting ? Math.sin(Math.min(age / 1.5, 1) * Math.PI) : 0
       const idle = reducedMotion.matches
         ? 0
-        : Math.sin(time * (props.sleeping ? 1.3 : 2))
+        : Math.sin(time * (props.sleeping ? 1.15 : 1.45))
       const still = reducedMotion.matches
       const play = reacting && props.reaction === 'play'
       const feed = reacting && props.reaction === 'feed'
@@ -135,13 +135,22 @@ onMounted(() => {
         1,
       )
       creature.root.rotation.z = pet ? Math.sin(age * 6) * 0.065 * energy : 0
-      const curious = still
-        ? 0
-        : Math.pow(Math.max(0, Math.sin(time * 0.39)), 6)
+      const pose = (offset: number) => {
+        const phase = (time - offset + 14) % 14
+        const left =
+          THREE.MathUtils.smoothstep(phase, 2.2, 3.3) -
+          THREE.MathUtils.smoothstep(phase, 5.1, 6.4)
+        const right =
+          THREE.MathUtils.smoothstep(phase, 9.2, 10.1) -
+          THREE.MathUtils.smoothstep(phase, 11.2, 12.5)
+        return left - right * 0.7
+      }
+      const glance = still || props.sleeping ? 0 : pose(0)
+      const headTurn = still || props.sleeping ? 0 : pose(0.22)
+      const curious = Math.max(0, headTurn)
       creature.head.rotation.z =
-        -0.035 + curious * 0.085 + (pet ? energy * 0.09 : 0)
-      creature.head.rotation.y =
-        still || props.sleeping ? 0 : Math.sin(time * 0.46) * 0.045
+        -0.06 + curious * 0.07 + (pet ? energy * 0.09 : 0)
+      creature.head.rotation.y = -0.025 + headTurn * 0.1
       creature.head.rotation.x = props.sleeping
         ? 0.13
         : feed
@@ -160,31 +169,36 @@ onMounted(() => {
         eye.visible = blink > 0.93
       })
       creature.eyes.forEach((eye) => {
-        eye.position.x =
-          still || props.sleeping ? 0 : Math.sin(time * 0.46) * 0.016
+        eye.visible = blink < 0.93
+        eye.position.x = glance * 0.014
         eye.position.y = feed ? -energy * 0.014 : curious * 0.007
       })
       creature.brows.forEach((brow, index) => {
         brow.rotation.z =
           (index === 0 ? -1 : 1) * (curious * 0.12 + (pet ? energy * 0.15 : 0))
-        brow.position.y = 0.345 + curious * 0.025
+        brow.position.y = 0.345 + curious * (index === 0 ? 0.03 : 0.015)
       })
       creature.paws.forEach((paw, index) => {
-        paw.rotation.z = (index === 0 ? 1 : -1) * energy * (feed ? -0.5 : 0.15)
-        paw.position.y = 1.22 + (feed ? energy * 0.075 : 0)
+        paw.rotation.z =
+          (index === 0 ? -0.04 : 0.075) +
+          (index === 0 ? 1 : -1) * energy * (feed ? -0.5 : 0.15)
+        paw.position.y =
+          1.22 + (index === 0 ? 0 : 0.035) + (feed ? energy * 0.075 : 0)
       })
       creature.claws.forEach((claw, index) => {
         claw.rotation.z =
-          (index === 0 ? -1 : 1) * (-0.42 + energy * 0.23 + idle * 0.025)
+          (index === 0 ? -1 : 1) *
+          (-0.42 + (index === 0 ? 0.06 : -0.06) + energy * 0.23 + idle * 0.015)
       })
       creature.antennae.forEach((antenna, index) => {
         antenna.rotation.z = still
           ? 0
-          : Math.sin(time * 2.1 - index * 0.7) * 0.025 +
+          : Math.sin(time * 1.4 - index * 0.7) * 0.014 +
+            headTurn * (index === 0 ? 0.045 : 0.025) +
             Math.sin(age * 8 - 0.65) * energy * 0.12
         antenna.rotation.x = still
           ? 0
-          : Math.sin(time * 1.7 - index * 0.6) * 0.035
+          : Math.sin(time * 1.2 - index * 0.6) * 0.018
       })
       controls.update()
       renderer.render(scene, camera)

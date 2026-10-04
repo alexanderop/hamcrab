@@ -20,8 +20,8 @@ export function createCreature(): CreatureRig {
   root.add(head)
   const materials = {
     shell: new THREE.MeshStandardMaterial({
-      color: '#ef503c',
-      roughness: 0.38,
+      color: '#ef5943',
+      roughness: 0.5,
     }),
     coral: new THREE.MeshStandardMaterial({
       color: '#ff7860',
@@ -35,7 +35,7 @@ export function createCreature(): CreatureRig {
       sheen: 0.65,
       sheenColor: '#ffe4bf',
       sheenRoughness: 0.85,
-      color: '#fff1cb',
+      color: '#fff0cc',
       roughness: 0.88,
     }),
     tan: new THREE.MeshStandardMaterial({ color: '#c88d51', roughness: 0.88 }),
@@ -122,16 +122,69 @@ export function createCreature(): CreatureRig {
   }
 
   ball(head, materials.shell, [0, 0, 0], [1.01, 0.94, 0.68])
-  ball(head, materials.darkRed, [0, -0.075, 0.39], [0.852, 0.744, 0.38])
-  const faceGeometry = sphere.clone()
+  const hoodPoints = Array.from({ length: 48 }, (_, index) => {
+    const angle = (index / 48) * Math.PI * 2
+    const y = Math.sin(angle)
+    return new THREE.Vector3(
+      Math.cos(angle) * (0.842 + 0.035 * Math.max(0, -y)),
+      y * 0.733 - 0.055,
+      0.555 + 0.04 * Math.max(0, -y),
+    )
+  })
+  const hoodRim = new THREE.Mesh(
+    new THREE.TubeGeometry(
+      new THREE.CatmullRomCurve3(hoodPoints, true),
+      96,
+      0.048,
+      12,
+      true,
+    ),
+    materials.coral,
+  )
+  hoodRim.castShadow = true
+  hoodRim.receiveShadow = true
+  head.add(hoodRim)
+  const faceGeometry = new THREE.SphereGeometry(1, 72, 52)
   const positions = faceGeometry.attributes.position
+  const faceColors = new Float32Array(positions.count * 3)
+  const creamColor = new THREE.Color('#fff0cc')
+  const patchColor = new THREE.Color('#b98248')
+  const blushColor = new THREE.Color('#ed9b7f')
   for (let index = 0; index < positions.count; index++) {
+    const x = positions.getX(index)
     const y = positions.getY(index)
-    const cheekWidth = 1 + 0.12 * Math.exp(-Math.pow((y + 0.3) / 0.5, 2))
-    positions.setX(index, positions.getX(index) * cheekWidth)
+    const z = positions.getZ(index)
+    const cheekWidth = 1 + 0.14 * Math.exp(-Math.pow((y + 0.32) / 0.5, 2))
+    const muzzle = Math.exp(
+      -Math.pow(x / 0.35, 4) - Math.pow((y + 0.31) / 0.23, 2),
+    )
+    positions.setXYZ(
+      index,
+      x * cheekWidth,
+      y,
+      z + Math.max(0, z) * muzzle * 0.13,
+    )
+    const patch = Math.exp(
+      -Math.pow((Math.abs(x) - 0.46) / 0.26, 4) -
+        Math.pow((y - 0.29) / 0.57, 4),
+    )
+    const blush = Math.exp(
+      -Math.pow((Math.abs(x) - 0.65) / 0.16, 2) -
+        Math.pow((y + 0.18) / 0.095, 2),
+    )
+    const front = THREE.MathUtils.smoothstep(z, 0.25, 0.65)
+    const color = creamColor
+      .clone()
+      .lerp(patchColor, patch * front * 0.97)
+      .lerp(blushColor, blush * front * 0.75)
+    color.toArray(faceColors, index * 3)
   }
+  faceGeometry.setAttribute('color', new THREE.BufferAttribute(faceColors, 3))
   faceGeometry.computeVertexNormals()
-  const face = new THREE.Mesh(faceGeometry, materials.cream)
+  const faceMaterial = materials.cream.clone()
+  faceMaterial.color.set('#ffffff')
+  faceMaterial.vertexColors = true
+  const face = new THREE.Mesh(faceGeometry, faceMaterial)
   face.position.set(0, -0.06, 0.5)
   face.scale.set(0.785, 0.7, 0.37)
   face.castShadow = true
@@ -143,43 +196,42 @@ export function createCreature(): CreatureRig {
   const antennae: THREE.Group[] = []
   const brows: THREE.Group[] = []
   for (const side of [-1, 1]) {
-    const patch = ball(
-      head,
-      materials.tan,
-      [side * 0.4, 0.18, 0.735],
-      [0.225, 0.335, 0.07],
-    )
-    patch.rotation.z = side * 0.28
     const socket = new THREE.Group()
-    socket.position.set(side * 0.35, 0.085, 0.815)
-    socket.rotation.z = side * -0.08
+    socket.position.set(side * 0.35, 0.085, 0.79)
+    socket.rotation.z = side * -0.09
     head.add(socket)
-    ball(socket, materials.line, [0, 0, 0], [0.175, 0.218, 0.074])
-    ball(socket, materials.cream, [0, 0, 0.028], [0.153, 0.193, 0.075])
     const eye = new THREE.Group()
     socket.add(eye)
-    ball(eye, materials.iris, [side * -0.014, 0, 0.074], [0.13, 0.176, 0.064])
-    ball(eye, materials.black, [side * -0.02, 0, 0.119], [0.081, 0.123, 0.03])
-    ball(eye, materials.white, [-0.046, 0.073, 0.143], [0.032, 0.039, 0.012])
-    ball(eye, materials.white, [0.035, -0.063, 0.139], [0.012, 0.015, 0.007])
+    ball(eye, materials.iris, [side * -0.014, 0, 0.074], [0.145, 0.187, 0.051])
+    ball(
+      eye,
+      materials.black,
+      [side * -0.02, 0.003, 0.109],
+      [0.101, 0.141, 0.025],
+    )
+    ball(eye, materials.white, [-0.046, 0.073, 0.133], [0.032, 0.039, 0.012])
+    ball(eye, materials.white, [0.035, -0.063, 0.131], [0.012, 0.015, 0.007])
     eyes.push(eye)
     const lid = new THREE.Mesh(
       new THREE.SphereGeometry(1, 32, 20, 0, Math.PI * 2, 0, Math.PI / 2),
-      materials.tan,
+      materials.cream,
     )
     lid.scale.set(0.18, 0.23, 0.23)
     lid.rotation.x = -Math.PI / 2
     lid.position.z = 0.008
-    socket.add(lid)
+    const lidDepth = new THREE.Group()
+    lidDepth.scale.z = 0.61
+    socket.add(lidDepth)
+    lidDepth.add(lid)
     lids.push(lid)
     const closedEye = curve(
       socket,
       [
-        [-0.13, 0.018, 0.171],
-        [-0.07, -0.021, 0.216],
-        [0, -0.034, 0.24],
-        [0.07, -0.021, 0.216],
-        [0.13, 0.018, 0.171],
+        [-0.13, 0.018, 0.108],
+        [-0.07, -0.021, 0.136],
+        [0, -0.034, 0.15],
+        [0.07, -0.021, 0.136],
+        [0.13, 0.018, 0.108],
       ],
       0.009,
       materials.line,
@@ -200,18 +252,6 @@ export function createCreature(): CreatureRig {
       materials.tan,
     )
     brows.push(brow)
-    ball(
-      head,
-      materials.cheek,
-      [side * 0.51, -0.15, 0.79],
-      [0.14, 0.063, 0.009],
-    )
-    ball(
-      head,
-      materials.cream,
-      [side * 0.14, -0.245, 0.818],
-      [0.19, 0.145, 0.074],
-    )
     ball(
       head,
       materials.black,
@@ -333,33 +373,32 @@ export function createCreature(): CreatureRig {
       0.09,
       materials.darkRed,
     )
-    const pincer = ball(
-      claw,
-      materials.shell,
-      [side * 0.45, 0.12, 0.04],
-      [0.25, 0.18, 0.18],
-    )
-    pincer.rotation.z = side * 0.5
-    curve(
-      claw,
-      [
-        [side * 0.46, 0.23, 0.055],
-        [side * 0.67, 0.16, 0.065],
-        [side * 0.72, 0.01, 0.07],
-      ],
-      0.072,
-      materials.coral,
-    )
-    curve(
-      claw,
-      [
-        [side * 0.45, 0.04, 0.09],
-        [side * 0.58, -0.03, 0.09],
-        [side * 0.65, 0.02, 0.09],
-      ],
-      0.058,
+    const pincerShape = new THREE.Shape()
+    pincerShape.moveTo(0.22, 0.05)
+    pincerShape.bezierCurveTo(0.2, 0.23, 0.34, 0.36, 0.49, 0.31)
+    pincerShape.bezierCurveTo(0.62, 0.3, 0.74, 0.17, 0.76, 0.07)
+    pincerShape.bezierCurveTo(0.66, 0.1, 0.6, 0.15, 0.52, 0.15)
+    pincerShape.quadraticCurveTo(0.46, 0.11, 0.48, 0.055)
+    pincerShape.quadraticCurveTo(0.59, 0.005, 0.72, 0.025)
+    pincerShape.bezierCurveTo(0.66, -0.1, 0.46, -0.15, 0.32, -0.055)
+    pincerShape.quadraticCurveTo(0.24, -0.025, 0.22, 0.05)
+    const pincer = new THREE.Mesh(
+      new THREE.ExtrudeGeometry(pincerShape, {
+        depth: 0.12,
+        bevelEnabled: true,
+        bevelSegments: 4,
+        steps: 1,
+        bevelSize: 0.045,
+        bevelThickness: 0.065,
+        curveSegments: 18,
+      }),
       materials.shell,
     )
+    pincer.scale.x = side
+    pincer.position.z = -0.02
+    pincer.castShadow = true
+    pincer.receiveShadow = true
+    claw.add(pincer)
     claws.push(claw)
     for (let leg = 0; leg < 3; leg++) {
       const y = 0.9 - leg * 0.23
@@ -382,11 +421,5 @@ export function createCreature(): CreatureRig {
     ).rotation.y = side * 0.6
   }
   ball(root, materials.shell, [0, 0.33, -0.68], [0.28, 0.21, 0.48])
-  ball(
-    head,
-    materials.coral,
-    [-0.22, 0.77, 0.36],
-    [0.054, 0.095, 0.024],
-  ).rotation.z = -0.4
   return { root, head, eyes, lids, closedEyes, antennae, brows, paws, claws }
 }
