@@ -1,6 +1,6 @@
 import * as THREE from 'three'
 
-export type SnackKind = 'pastry' | 'kebab' | 'bottle'
+import type { SnackKind } from '../scene-types'
 
 export function createSnack(kind: SnackKind): THREE.Group {
   const root = new THREE.Group()

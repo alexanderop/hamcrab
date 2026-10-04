@@ -6,3 +6,6 @@ playwright-report
 test-results
 .audit
 pnpm-lock.yaml
+
+.vitest-attachments/
+tests/browser/__screenshots__/

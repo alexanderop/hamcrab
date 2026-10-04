@@ -9,11 +9,13 @@
     "build": "vue-tsc --noEmit && vite build",
     "preview": "vite preview --host 127.0.0.1",
     "typecheck": "vue-tsc --noEmit",
-    "lint": "oxlint src tests --deny-warnings && prettier --check .",
+    "lint": "oxlint src tests tooling --deny-warnings && prettier --check src tests tooling docs .github *.json *.ts *.md .oxlintrc.json .gitignore .prettierignore --ignore-unknown",
     "test:e2e": "bddgen && playwright test --project chromium",
     "test:compat": "bddgen && playwright test",
-    "verify": "pnpm lint && pnpm build && pnpm test:e2e",
-    "format": "prettier --write ."
+    "verify": "pnpm lint && pnpm test:unit && pnpm test:browser && pnpm build && pnpm test:e2e",
+    "format": "prettier --write src tests tooling docs .github *.json *.ts *.md .oxlintrc.json .gitignore .prettierignore --ignore-unknown",
+    "test:unit": "vitest run --project unit",
+    "test:browser": "vitest run --project browser"
   },
   "dependencies": {
     "@fontsource/press-start-2p": "^5.3.0",
@@ -29,12 +31,15 @@
     "@types/node": "^24.0.0",
     "@types/three": "^0.180.0",
     "@vitejs/plugin-vue": "^6.0.1",
+    "@vitest/browser-playwright": "^4.1.11",
     "oxlint": "^1.80.0",
     "playwright-bdd": "9.2.0",
     "prettier": "^3.9.9",
     "typescript": "~5.9.3",
     "vite": "^7.3.6",
     "vite-plugin-pwa": "^1.3.0",
+    "vitest": "^4.1.11",
+    "vitest-browser-vue": "^3.1.0",
     "vue-tsc": "^3.1.1"
   },
   "description": "A local-first 3D pocket pet in a nostalgic handheld PWA."

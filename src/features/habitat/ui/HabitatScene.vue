@@ -2,13 +2,11 @@
 import { onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import * as THREE from 'three'
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
-import { createSnack, type SnackKind } from './snacks'
-import { disposeObject } from './disposeObject'
-import {
-  createCreature,
-  type CostumePalette,
-  type CreatureReaction,
-} from './creature'
+import { createSnack } from '../three/snacks'
+import type { SnackKind } from '../scene-types'
+import { disposeObject } from '../three/disposeObject'
+import { createCreature } from '../three/creature'
+import type { CostumePalette, CreatureReaction } from '../scene-types'
 
 const props = defineProps<{
   palette: CostumePalette

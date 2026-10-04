@@ -1,30 +1,26 @@
-import { z } from 'zod'
 import { foods, type FoodId } from './foods'
 
-const meter = z.number().finite().min(0).max(100)
-export const petNameSchema = z
-  .string()
-  .trim()
-  .min(1)
-  .max(24)
-  .refine((name) => !/\p{Cc}/u.test(name))
+export type PetSnapshot = Readonly<{
+  version: 1
+  name: string
+  fullness: number
+  happiness: number
+  energy: number
+  sleeping: boolean
+  careCount: number
+  createdAt: number
+  updatedAt: number
+}>
 
-export const petSnapshotSchema = z
-  .object({
-    version: z.literal(1),
-    name: petNameSchema,
-    fullness: meter,
-    happiness: meter,
-    energy: meter,
-    sleeping: z.boolean(),
-    careCount: z.number().int().nonnegative(),
-    createdAt: z.number().finite().nonnegative(),
-    updatedAt: z.number().finite().nonnegative(),
-  })
-  .strict()
-  .refine((pet) => pet.updatedAt >= pet.createdAt)
+export function parsePetName(
+  value: string,
+): { success: true; data: string } | { success: false } {
+  const name = value.trim()
+  return name.length >= 1 && name.length <= 24 && !/\p{Cc}/u.test(name)
+    ? { success: true, data: name }
+    : { success: false }
+}
 
-export type PetSnapshot = z.infer<typeof petSnapshotSchema>
 export type CareAction =
   { type: 'feed'; food: FoodId } | { type: 'play' | 'sleep' | 'wake' | 'pet' }
 export type CareMessage =

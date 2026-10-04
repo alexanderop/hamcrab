@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { Check, X } from '@lucide/vue'
-import { colorNames, palettes, type Preferences } from './preferences'
+import { colorNames, palettes } from './palettes'
+import type { Preferences } from '../domain/preferences'
 import type { Messages } from './messages'
 
 defineProps<{

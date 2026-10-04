@@ -1,15 +1,10 @@
 import { onMounted, onUnmounted, readonly, ref } from 'vue'
-import {
-  advancePet,
-  createPet,
-  petNameSchema,
-  type CareAction,
-  type CareMessage,
-} from './domain'
-import { InvalidPetDataError, loadPet, saveCare, savePetName } from './storage'
+import { parsePetName, type CareAction, type CareMessage } from '../domain/pet'
+import { InvalidPetDataError } from '../application/ports'
+import type { PetService } from '../application/pet-service'
 
-export function usePetSession() {
-  const pet = ref(createPet(Date.now()))
+export function usePetSession(service: PetService) {
+  const pet = ref(service.initial())
   const ready = ref(false)
   const busy = ref(false)
   const error = ref<'invalid' | 'save' | 'load' | null>(null)
@@ -32,9 +27,9 @@ export function usePetSession() {
     if (busy.value || disposed) return
     busy.value = true
     try {
-      const stored = await loadPet()
+      const stored = await service.load()
       if (disposed) return
-      pet.value = advancePet(stored, Date.now())
+      pet.value = stored
       ready.value = true
       error.value = null
       saved.value = true
@@ -50,7 +45,7 @@ export function usePetSession() {
     busy.value = true
     saved.value = false
     try {
-      const result = await saveCare(action)
+      const result = await service.care(action)
       if (disposed) return false
       pet.value = result.pet
       message.value = result.message
@@ -66,15 +61,14 @@ export function usePetSession() {
   }
 
   async function rename(name: string) {
+    if (!parsePetName(name).success) return false
     if (!ready.value || busy.value || disposed || error.value) return false
-    const parsed = petNameSchema.safeParse(name)
-    if (!parsed.success) return false
     busy.value = true
     saved.value = false
     try {
-      const stored = await savePetName(parsed.data)
-      if (disposed) return false
-      pet.value = advancePet(stored, Date.now())
+      const stored = await service.rename(name)
+      if (disposed || stored === null) return false
+      pet.value = stored
       saved.value = true
       return true
     } catch (cause) {

@@ -1,0 +1,30 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "jsPlugins": ["./tooling/architecture.mjs"],
+  "rules": { "hamcrab-architecture/boundaries": "error" },
+  "overrides": [
+    {
+      "files": [
+        "src/features/*/domain/**/*.ts",
+        "src/features/*/application/**/*.ts"
+      ],
+      "rules": {
+        "no-restricted-globals": [
+          "error",
+          "window",
+          "document",
+          "navigator",
+          "localStorage",
+          "sessionStorage",
+          "indexedDB",
+          "Date",
+          "performance",
+          "fetch",
+          "setInterval",
+          "setTimeout",
+          "globalThis"
+        ]
+      }
+    }
+  ]
+}

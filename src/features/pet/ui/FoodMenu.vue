@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { X, Utensils, Heart, BatteryMedium } from '@lucide/vue'
-import { foods, foodIds, type FoodId } from './foods'
+import { foods, foodIds, type FoodId } from '../domain/foods'
 
 const props = defineProps<{
   selected: FoodId

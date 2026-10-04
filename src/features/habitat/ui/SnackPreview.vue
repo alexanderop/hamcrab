@@ -2,8 +2,9 @@
 import { onMounted, onBeforeUnmount, ref, watch } from 'vue'
 import * as THREE from 'three'
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
-import { createSnack, type SnackKind } from './snacks'
-import { disposeObject } from './disposeObject'
+import { createSnack } from '../three/snacks'
+import type { SnackKind } from '../scene-types'
+import { disposeObject } from '../three/disposeObject'
 
 const props = defineProps<{
   kind: SnackKind

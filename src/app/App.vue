@@ -12,23 +12,28 @@ import {
   WifiOff,
   Settings,
 } from '@lucide/vue'
-import HabitatScene from './features/habitat/HabitatScene.vue'
-import { usePetSession } from './features/pet/usePetSession'
-import type { CareAction } from './features/pet/domain'
-import type { FoodId } from './features/pet/foods'
-import FoodMenu from './features/pet/FoodMenu.vue'
-import PetNameForm from './features/pet/PetNameForm.vue'
-import SnackPreview from './features/habitat/SnackPreview.vue'
-import type { SnackKind } from './features/habitat/snacks'
+import { HabitatScene, SnackPreview, type SnackKind } from '../features/habitat'
+import {
+  usePetSession,
+  FoodMenu,
+  PetNameForm,
+  type CareAction,
+  type FoodId,
+} from '../features/pet'
+import {
+  SettingsPanel,
+  useSettings,
+  messages,
+  palettes,
+} from '../features/settings'
+import { useServices } from './services'
 
-import SettingsPanel from './features/settings/SettingsPanel.vue'
-import { useSettings } from './features/settings/useSettings'
-import { messages } from './features/settings/messages'
-import { palettes } from './features/settings/preferences'
-
-const { preferences, storageUnavailable, update } = useSettings()
+const services = useServices()
+const { preferences, storageUnavailable, update } = useSettings(
+  services.settings,
+)
 const { pet, ready, busy, error, message, saved, care, retry, rename } =
-  usePetSession()
+  usePetSession(services.pet)
 const text = computed(() =>
   messages[preferences.value.language](pet.value.name),
 )

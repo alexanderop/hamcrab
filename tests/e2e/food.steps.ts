@@ -37,17 +37,6 @@ Then(
   },
 )
 
-When('I dismiss the food menu', async ({ page }) => {
-  await page.keyboard.press('Escape')
-  await expect(page.getByRole('dialog')).not.toBeVisible()
-})
-
-Then('focus returns to the feed button', async ({ page }) => {
-  await expect(
-    page.getByRole('button', { name: 'Feed', exact: true }),
-  ).toBeFocused()
-})
-
 Then(
   'the Döner feedback and care values are shown in German',
   async ({ page }) => {

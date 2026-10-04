@@ -34,15 +34,15 @@ Nach einem vollständigen ersten Laden speichert der Service Worker die Anwendun
 
 ## Prüfen
 
-Die Teststrategie besteht ausschließlich aus Playwright-E2E-Tests mit ausführbaren Gherkin-Szenarien.
+Die Teststrategie folgt den AOP-Principles: schnelle Vitest-Tests für reine Regeln und Anwendungsfälle, echte Browser-Tests für Komponenten und Speicheradapter sowie gezielte Playwright-E2E-Journeys mit Gherkin. Details und die Zuordnung der bisherigen E2E-Fälle stehen in [Teststrategie](docs/testing.md).
 
 ```sh
-pnpm exec playwright install chromium firefox
+pnpm exec playwright install chrome chromium firefox
 pnpm verify
 pnpm test:compat
 ```
 
-`verify` führt Oxlint, strikte TypeScript-Prüfung, Produktionsbuild und Chromium-Szenarien aus. `test:compat` prüft den vorhandenen Produktionsbuild in Chromium und Firefox. Die Szenarien prüfen Pflege, Schlaf, Zeit, Persistenz, Offline-Neuladen, gleichzeitige Tabs, kleine Bildschirme, beschädigte Daten und die 3D-Ansicht.
+`verify` führt Oxlint mit Architekturregeln, Node-Tests, Vitest Browser Mode in Google Chrome, strikte TypeScript-Prüfung, Produktionsbuild und Chromium-Szenarien aus. `test:compat` prüft den vorhandenen Produktionsbuild in Chromium und Firefox. Die Szenarien prüfen Pflege, Schlaf, Zeit, Persistenz, Offline-Neuladen, gleichzeitige Tabs, kleine Bildschirme, beschädigte Daten und die 3D-Ansicht.
 
 Für Hosting unter einem Unterpfad setze `VITE_BASE_PATH` beim Build und beim Prüfen identisch. GitHub Actions prüft jeden Push auf `main` und veröffentlicht den erfolgreichen Build auf GitHub Pages. Pull Requests werden nur geprüft.
 

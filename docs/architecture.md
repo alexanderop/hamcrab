@@ -1,33 +1,61 @@
 # Architektur
 
-Hamcrab ist eine eigenständige Vue-PWA. Pinchy ist der Name des Haustiers.
+Hamcrab ist eine lokale Vue-PWA mit Feature Based Architecture und Ports und Adapters. Pinchy ist der Standardname des Haustiers.
 
-## Zuständigkeiten
+## Struktur und Abhängigkeiten
 
-`features/pet` besitzt den Spielstand, Pflegeaktionen, Zeitregeln und lokale Speicherung. Reine Übergänge erhalten den Zustand und die Uhrzeit als Eingaben. Die Vue-Anbindung führt IndexedDB-Transaktionen aus und zeigt Lade- oder Speicherfehler an.
+```text
+src/
+  app/
+    bootstrap.ts        Konkrete Adapter erzeugen und verbinden
+    services.ts         Typisierte Übergabe an die Vue-App
+    App.vue             Features und sichtbare Oberfläche komponieren
+  features/
+    pet/
+      index.ts          Öffentliche API
+      domain/           Pflege, Zeit, Namen, Futter
+      application/      Anwendungsfälle, PetRepository und Clock
+      adapters/         Dexie und Validierung gespeicherter Daten
+      ui/               Sitzung, Futtermenü und Namensformular
+    settings/
+      index.ts
+      domain/           Präferenzen und Standardwerte
+      application/      SettingsService und PreferencesStore
+      adapters/         localStorage, Zod und Storage-Ereignisse
+      ui/               Vue-Anbindung, Dialog, Texte und Paletten
+    habitat/
+      index.ts
+      scene-types.ts    Einfache Darstellungsdaten ohne Three.js-Typen
+      three/            Geometrie, Materialien und Ressourcenfreigabe
+      ui/               Szene und Vorschau mit Vue-Lifecycle
+```
 
-`features/habitat` besitzt das prozedurale Three.js-Modell, die Kamera, Animationen und GPU-Ressourcen. Es erhält ausschließlich Darstellungsdaten. Es verändert keine Spielwerte.
+Domain kennt nur eigene fachliche Daten und Funktionen. Application kennt Domain und ihre eigenen Ports. Adapter implementieren diese Ports. Die UI erhält Anwendungsfälle als Parameter; sie erzeugt keine Speicheradapter. Nur `app/bootstrap.ts` verbindet konkrete Infrastruktur mit den Anwendungsfällen. `main.ts` stellt die Dienste der Vue-App bereit und schließt die Datenbank beim Unmount beziehungsweise HMR-Abbau.
 
-Die Nahrungsmitteltabelle in `features/pet/foods.ts` definiert die Effekte. Pflegeaktionen sind eine Union, in der Füttern immer eine konkrete Auswahl enthält. Das Futtermenü zeigt eine von `App.vue` eingesetzte 3D-Vorschau. `features/habitat/snacks.ts` erzeugt die drei Geometrien und das Flaschenetikett lokal. Die Vorschau rendert bei Änderungen; beim Schließen gibt sie Geometrien, Materialien, Texturen und ihren WebGL-Kontext frei. Die Fütterungsanimation nutzt dieselben Modelle im Lebensraum. Das Schema bestehender Spielstände bleibt unverändert.
+Andere Features und die App greifen über `index.ts` zu. Die gezielte Ausnahme ist der Import konkreter Adapter in `app/bootstrap.ts`. Die Oxlint-Regel in `tooling/architecture.mjs` prüft auch Re-Exports, dynamische Imports, Require, Import-Typen und Vue-Skripte. Kernschichten dürfen keine externen Pakete oder globalen Browser-/Zeitquellen verwenden. Tests prüfen erlaubte und verbotene Verbindungen sowie die echte Linter-Ausführung.
 
-`features/settings` besitzt Sprache, Farbpaletten, Übersetzungen und den Einstellungsdialog. Die kleinen Präferenzen liegen getrennt vom Spielstand im lokalen Browserspeicher und werden mit Zod validiert. Neue Besuche starten auf Englisch. Nicht lesbare Präferenzen verwenden Standardwerte, ohne den Spielstand zu verändern. Speicherfehler werden als vorübergehende Auswahl angezeigt. Andere Tabs übernehmen Änderungen über das Storage-Ereignis.
+## Haustier und atomare Speicherung
 
-Pflegeergebnisse liefern sprachunabhängige Meldungsschlüssel. `App.vue` übersetzt diese und reicht die ausgewählte Palette und Beschreibung an die 3D-Ansicht weiter. Die Ansicht ändert vorhandene Materialien, ohne Geometrie oder Kamera neu anzulegen.
+`createPet`, `advancePet`, `careForPet` und `parsePetName` sind reine Funktionen. Zustand und Uhrzeit sind Eingaben. Abgelehnte Pflege liefert ein fachliches Ergebnis mit Meldungsschlüssel, ohne einen Fehler zu werfen. Spielstände sind readonly. Die Zod-Validierung gespeicherter Daten liegt im Adapter; fachliche Namensregeln bleiben in der Domain.
 
-Der Name gehört zum Haustier. `PetNameForm` wird über einen Slot in die Einstellungen eingesetzt; Validierung und Speicherung bleiben in `features/pet`. Die separate Umbenennung liest den neuesten Spielstand innerhalb einer Dexie-Transaktion und ändert ausschließlich den Namen. Dadurch bleiben parallele Pflegeaktionen erhalten. Bestehende Spielstände mit dem Standardnamen sind weiterhin gültig. Die Übersetzungsfunktionen erhalten den aktuellen Namen von `App.vue`.
+`createPetService(repository, clock)` bietet Laden, Pflege und Umbenennen an. Die Uhr ist explizit injiziert. Die Vue-Sitzung verwaltet Lade-/Speicheranzeige, Fehler, Wiederholung und Aktualisierung bei Sichtbarkeit. Sie kennt weder Dexie noch die konkrete Speicherstruktur.
 
-Vite PWA erzeugt den Service Worker und speichert die gebaute Anwendung offline. Die Installation erfolgt über das Browsermenü.
+Der Port `PetRepository.transact` erhält eine synchrone Änderungsfunktion und liefert deren Ergebnis zurück. Der Adapter liest den neuesten Stand, validiert ihn, führt die Entscheidung aus und speichert eine optionale Änderung innerhalb einer einzigen Dexie-Transaktion. So überschreiben parallele Pflege und Umbenennung keine fremden Änderungen. Eine getrennte Folge von `load` und `save` erfüllt diesen Vertrag nicht.
 
-`App.vue` verbindet die Features und die sichtbare Oberfläche. Alle Laufzeitressourcen sind lokal gebündelt.
+Laden rechnet vergangene Zeit für die Ansicht an, speichert einen vorhandenen Stand aber nicht erneut. Abgelehnte Pflege schreibt keinen vorhandenen Stand um. Umbenennen verändert im gespeicherten Stand ausschließlich den Namen. Beschädigte Daten werden weder ersetzt noch repariert. Speicherfehler werden weitergereicht; `InvalidPetDataError` gehört zum Anwendungsvertrag und ist keine Dexie-spezifische Klasse.
 
-## Designentscheidung
+Die Datenbank heißt weiterhin `pinchy`, mit Version 1, Tabelle `pets` und Schlüssel `pinchy`. Bestehende Spielstände benötigen keine Migration.
 
-Zwei unabhängige Entwürfe verglichen einen gespeicherten Zustand mit einer Historie aller Aktionen. Der Zustand benötigt weniger Verwaltung und macht Lade- und Zeitregeln direkt sichtbar. Die Historie würde Wiederholung und Mehrbenutzer-Synchronisation erleichtern, wächst aber ohne Begrenzung.
+## Einstellungen und Darstellung
 
-Der gewählte Zustand übernimmt die Transaktionsanforderung des zweiten Entwurfs. Jede Pflege liest und verändert den aktuellen Stand atomar. Die Sitzung aktualisiert andere Tabs aus IndexedDB.
+`PreferencesStore` kapselt Lesen, Schreiben und Abonnieren fremder Änderungen. Der localStorage-Adapter validiert Daten mit Zod. Ungültige Präferenzen ergeben Standardwerte, ohne den Haustierstand anzufassen. Kann nicht gespeichert werden, bleibt die Auswahl vorübergehend sichtbar und die UI zeigt einen Hinweis.
 
-Die Figur entsteht aus editierbarer Geometrie. Sie ist eine stilisierte Interpretation der Referenz, kein identisches importiertes Modell.
+Jede Änderung wird mit den zuletzt gespeicherten Präferenzen zusammengeführt. Storage-Ereignisse aktualisieren andere Tabs. localStorage bietet keine atomare Transaktion über Lesen und Schreiben; exakt gleichzeitige Änderungen können weiterhin konkurrieren. Die strenge Transaktionsgarantie des Haustiers gilt hier nicht.
+
+`habitat` ist ein Darstellungsfeature und braucht keine künstliche Domain-/Repository-Schicht. Es erhält Schlafstatus, Reaktionen, Snack-Art und Palette als einfache Werte. Three.js-Typen, Geometrien, Animationen und GPU-Lifecycle bleiben intern. Es verändert keine Spielwerte.
+
+`App.vue` übersetzt Meldungsschlüssel, ordnet Futter den Snack-Modellen zu und verbindet Komponenten über Props, Events und Slots. Der Namenseditor bleibt Eigentum von `pet`, auch wenn er im Einstellungsdialog erscheint. Vite PWA bündelt weiterhin lokale Ressourcen für Offline-Nutzung unter dem konfigurierten Basis-Pfad.
 
 ## Prüfung
 
-Ausschließlich Playwright mit ausführbaren Gherkin-Szenarien prüft das Verhalten. Es gibt keine Unit- oder Komponententest-Suite. Tests öffnen den Produktionsbuild, bedienen sichtbare Elemente und prüfen Pflege, Schlaf, Zeit, Speicherung und Offline-Neuladen. Weitere Szenarien prüfen Sprache, tatsächliche Farbänderungen im 3D-Bild, gespeicherte Einstellungen, Tastaturbedienung, mehrere Tabs und nicht verfügbaren Speicher. Bildschirmaufnahmen dienen zusätzlich der visuellen Prüfung.
+Die Testaufteilung und die aus E2E verschobenen Verantwortlichkeiten stehen in [Teststrategie](testing.md). Der Umbau wurde zunächst gegen alle 46 bestehenden E2E-Szenarien geprüft, bevor überlappende Szenarien in kleinere Testschichten verschoben wurden.

@@ -1,7 +1,6 @@
 import * as THREE from 'three'
 
-export type CreatureReaction = 'idle' | 'feed' | 'play' | 'pet'
-export type CostumePalette = { base: string; light: string; shade: string }
+import type { CostumePalette } from '../scene-types'
 
 export interface CreatureRig {
   setPalette: (palette: CostumePalette) => void

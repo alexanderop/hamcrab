@@ -1,0 +1,51 @@
+# Teststrategie
+
+Jeder Test soll auf der kleinsten Ebene laufen, die seinen Fehler tatsächlich zeigen kann. Grundlage sind die AOP-Principles **Test at the Right Layer**, **Make Dependencies Explicit** und **Functional Core** aus `aop-mode`.
+
+## Aufteilung
+
+| Ebene                                    | Was sie beweist                                                                                                   | Was sie nicht beweist                                                    |
+| ---------------------------------------- | ----------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------ |
+| Vitest Node                              | Pflege- und Zeitregeln, Namensvalidierung, Anwendungsfälle mit deterministischen Ports, Importgrenzen             | Browser-Verhalten und reale Speicherung                                  |
+| Vitest Browser Mode, Google Chrome       | Formulare, native Dialoge, Fokus, Tastatur, Vue-Service-Anbindung, echte IndexedDB-Transaktionen und localStorage | Verdrahtung des Produktionsbuilds und Offline-Installation               |
+| Playwright/Gherkin, Chromium und Firefox | Produktions-App, Wiederherstellung nach Reload, Service Worker, mehrere Tabs, 3D, gesamtes Layout                 | Vollständige Regelkombinationen oder ein umfassendes Accessibility-Audit |
+
+Es gibt keine Modul-Mocks, keine simulierte DOM-Umgebung und keine HTTP-Mock-Infrastruktur. Die App hat keinen HTTP-Backend-Adapter. Die vorhandene Playwright-Uhr kontrolliert Zeit in App-Journeys; Service-Tests erhalten eine explizite Uhr. Node-Service-Tests verwenden einen kleinen Speicher-Port. Der ist kein Nachweis für Dexie: Browser-Tests prüfen zusätzlich echte IndexedDB-Verbindungen, Konkurrenz und Rollback.
+
+## Migration der bisherigen E2E-Abdeckung
+
+Die bisherigen 46 E2E-Szenarien bestanden vor und nach dem Architekturumbau. Die reduzierte Suite enthält 26 Szenarien pro Browser. Verschobene Tests wurden durch passende niedrigere Ebenen ersetzt:
+
+| Bisheriges E2E-Thema                                          | Neue Hauptabdeckung                                                     | Verbleibender App-Nachweis                                                  |
+| ------------------------------------------------------------- | ----------------------------------------------------------------------- | --------------------------------------------------------------------------- |
+| Effekte aller drei Speisen, Grenzwerte, Zeitfortschritt       | `tests/unit/pet.test.ts`                                                | Pflege nach Reload, Schlaf/Wecken und Offline-Futterauswahl                 |
+| Leere/getrimmte Namen, Umbenennen im Schlaf                   | Domain-/Service-Tests und echter Speicheradapter                        | Name bleibt offline sichtbar; Umbenennen und Pflege in zwei Tabs            |
+| Unfertiger Namensentwurf, Validierungsanzeige, Speicherfehler | `components.test.ts`, `settings.test.ts`, `persistence.test.ts`         | Beschädigter Spielstand wird in der App erklärt und erhalten                |
+| Menü schließen ohne Füttern, Fokus zurückgeben                | Browser-Komponententest mit nativem Dialog                              | Futterauswahl, 3D-Vorschau, Animation und kleine Bildschirme                |
+| Tastaturbedienung der Einstellungen in vier Größen            | Browser-Komponententests mit realer CSS-Datei und Namenseditor-Slot     | Gesamt-App-Layout, lange Namen und Food-Menü in kleinen Ansichten           |
+| Ungültige Präferenzen und nicht verfügbarer Speicher          | Echter localStorage-Adapter, Service-Fehlerpfade und gerenderter Dialog | Sprache/Farben nach Offline-Reload und echte Tab-Synchronisierung           |
+| Parallele Pflege                                              | Browser-Test mit zwei echten Dexie-Verbindungen                         | Pflege plus Umbenennen in zwei echten App-Tabs, Schlafkonflikt beim Füttern |
+| Zusätzlicher generischer Offline-Besuch                       | Zusammengeführt mit spezifischen Offline-Journeys                       | Snack, Name und Einstellungen mit Produktions-Service-Worker                |
+
+`tests/support/pet-repository.ts` ist ausschließlich eine deterministische Testabhängigkeit. Komponenten-Harnesses verbinden echte Komponenten mit explizit übergebenen Services; sie kopieren keine Spielregeln. Datenbanken und Storage-Schlüssel der Adaptertests sind pro Test eindeutig und werden aufgeräumt.
+
+## Ausführen
+
+```sh
+pnpm exec playwright install chrome chromium firefox
+pnpm test:unit
+pnpm test:browser
+pnpm verify
+pnpm test:compat
+```
+
+`verify` führt Lint/Formatierung, Node-Tests, Browser-Tests, Typecheck/Produktionsbuild und Chromium-E2E aus. `test:compat` prüft den vorhandenen Build in Chromium und Firefox. Beide E2E-Kommandos erzeugen ausführbare Tests aus Gherkin neu. Für Pages müssen Build und Vorschau denselben Basis-Pfad verwenden:
+
+```sh
+VITE_BASE_PATH=/hamcrab/ pnpm verify
+VITE_BASE_PATH=/hamcrab/ pnpm test:compat
+```
+
+CI führt alle Schichten aus, bevor der Build veröffentlicht werden darf. Browser-Fehlerbilder und Traces werden als Artefakte gesichert. Die bestehenden Layout-/Rendering-Prüfungen sind funktionale beziehungsweise gezielte visuelle Nachweise, keine vollständigen Screenshot-Baselines.
+
+Konfigurationsreferenzen: [Vitest Browser Mode](https://vitest.dev/guide/browser/), [Oxlint JS Plugins](https://oxc.rs/docs/guide/usage/linter/writing-js-plugins.html).

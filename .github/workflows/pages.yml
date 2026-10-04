@@ -35,9 +35,13 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
       - name: Install browsers
-        run: pnpm exec playwright install --with-deps chromium firefox
+        run: pnpm exec playwright install --with-deps chrome chromium firefox
       - name: Check code and formatting
         run: pnpm lint
+      - name: Verify rules, services and architecture
+        run: pnpm test:unit
+      - name: Verify components and real browser persistence
+        run: pnpm test:browser
       - name: Build production PWA
         run: pnpm build
       - name: Verify BDD journeys in Chromium and Firefox
@@ -47,7 +51,10 @@ jobs:
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: browser-failure-evidence
-          path: test-results/
+          path: |
+            test-results/
+            tests/browser/__screenshots__/
+            .vitest-attachments/
           retention-days: 7
       - name: Upload verified site
         if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'

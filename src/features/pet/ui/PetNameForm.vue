@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
-import { petNameSchema } from './domain'
+import { parsePetName } from '../domain/pet'
 
 const props = defineProps<{
   name: string
@@ -21,7 +21,7 @@ const confirmed = computed(
   () =>
     savedName.value === draft.value.trim() && savedName.value === props.name,
 )
-const parsed = computed(() => petNameSchema.safeParse(draft.value))
+const parsed = computed(() => parsePetName(draft.value))
 const changed = computed(() => draft.value.trim() !== props.name)
 watch(
   () => props.name,

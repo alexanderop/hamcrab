@@ -44,44 +44,6 @@ Then(
 )
 
 When(
-  'I draft the name {string} and dismiss settings',
-  async ({ page }, name: string) => {
-    const settings = new PetNamePage(page)
-    await settings.open()
-    await settings.input.fill(name)
-    await settings.input.press('Escape')
-    await expect(settings.dialog).not.toBeVisible()
-  },
-)
-
-When('I enter a blank companion name', async ({ page }) => {
-  const settings = new PetNamePage(page)
-  await settings.open()
-  await settings.input.fill('   ')
-})
-
-Then(
-  'the name is explained as invalid and cannot be saved',
-  async ({ page }) => {
-    const settings = new PetNamePage(page)
-    await expect(settings.input).toHaveAttribute('aria-invalid', 'true')
-    await expect(settings.save).toBeDisabled()
-    await expect(settings.dialog.getByRole('alert')).toContainText(
-      '1–24 characters',
-    )
-  },
-)
-
-When('I save the name {string} instead', async ({ page }, name: string) => {
-  const settings = new PetNamePage(page)
-  await settings.input.fill(name)
-  await settings.save.click()
-  await expect(settings.dialog.getByRole('status')).toHaveText('Name saved.')
-  await expect(settings.input).toHaveValue(name.trim())
-  await settings.close()
-})
-
-When(
   'I rename and play in two homes at the same time',
   async ({ page, context }) => {
     const second = await context.newPage()
@@ -101,32 +63,6 @@ When(
       'Playing makes',
     )
     await settings.close()
-  },
-)
-
-When('I attempt to save a different name', async ({ page }) => {
-  const settings = new PetNamePage(page)
-  await settings.open()
-  await settings.input.fill('Nemo')
-  await settings.save.click()
-})
-
-Then(
-  'the name error preserves my companion and damaged save',
-  async ({ page }) => {
-    const settings = new PetNamePage(page)
-    await expect(settings.dialog.getByRole('alert')).toContainText(
-      'It has not been changed',
-    )
-    await expect(settings.save).toBeDisabled()
-    await settings.close()
-    await expect(
-      page.getByRole('heading', { name: 'Pinchy', exact: true }),
-    ).toBeVisible()
-    await page.reload()
-    await expect(page.getByRole('alert')).toContainText(
-      'It has not been changed',
-    )
   },
 )
 

@@ -10,3 +10,6 @@ test-results/
 .env
 .env.*
 !.env.example
+
+.vitest-attachments/
+tests/browser/__screenshots__/

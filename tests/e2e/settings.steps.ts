@@ -1,7 +1,7 @@
 import { createBdd } from 'playwright-bdd'
 import { expect, type Page } from '@playwright/test'
 
-const { Given, When, Then } = createBdd()
+const { When, Then } = createBdd()
 let originalCanvas: Buffer
 let originalCase: string
 
@@ -31,16 +31,6 @@ class SettingsPage {
       .check()
   }
 }
-
-Given('I open a fresh home in a German browser', async ({ page, context }) => {
-  await context.addInitScript(() => {
-    Object.defineProperty(navigator, 'language', { get: () => 'de-DE' })
-    Object.defineProperty(navigator, 'languages', {
-      get: () => ['de-DE', 'de'],
-    })
-  })
-  await page.goto('./')
-})
 
 Then('my home speaks English', async ({ page }) => {
   await expect(page.locator('html')).toHaveAttribute('lang', 'en')
@@ -177,104 +167,6 @@ When('I switch the language to English', async ({ page }) => {
   await settings.open()
   await settings.choose('Sprache', 'English')
   await settings.close()
-})
-
-When('I open settings with the keyboard', async ({ page }) => {
-  await page.getByRole('button', { name: 'Settings', exact: true }).focus()
-  await page.keyboard.press('Enter')
-  await expect(page.getByRole('dialog')).toBeVisible()
-  await expect(
-    page.getByRole('button', { name: 'Close settings' }),
-  ).toBeFocused()
-})
-
-Then(
-  'all settings are reachable within the screen',
-  async ({ page, browserName }) => {
-    const dialog = page.getByRole('dialog')
-    await expect(dialog).toBeInViewport({ ratio: 1 })
-    await page.keyboard.press('Tab')
-    await expect(
-      dialog.getByRole('textbox', { name: 'Pet name' }),
-    ).toBeFocused()
-    await page.keyboard.press('Tab')
-    await expect(
-      dialog.getByRole('radio', { name: 'English', exact: true }),
-    ).toBeFocused()
-    await page.keyboard.press('ArrowRight')
-    await expect(
-      dialog.getByRole('radio', { name: 'Deutsch', exact: true }),
-    ).toBeChecked()
-    await page.keyboard.press('ArrowLeft')
-    await expect(
-      dialog.getByRole('radio', { name: 'English', exact: true }),
-    ).toBeChecked()
-    for (const group of ['Case colour', 'Crab costume']) {
-      await page.keyboard.press('Tab')
-      await expect(
-        dialog
-          .getByRole('group', { name: group })
-          .getByRole('radio', { name: 'Coral' }),
-      ).toBeFocused()
-      await page.keyboard.press('ArrowRight')
-      await expect(
-        dialog
-          .getByRole('group', { name: group })
-          .getByRole('radio', { name: 'Mint' }),
-      ).toBeChecked()
-    }
-    await page.keyboard.press('Tab')
-    const done = dialog.getByRole('button', { name: 'Done' })
-    await expect(done).toBeFocused()
-    await done.scrollIntoViewIfNeeded()
-    await expect(done).toBeInViewport({ ratio: 1 })
-    expect(
-      await dialog.evaluate(
-        (element) => element.scrollWidth <= element.clientWidth,
-      ),
-    ).toBe(true)
-    await page.screenshot({
-      path: `test-results/settings-${page.viewportSize()!.width}-${browserName}.png`,
-    })
-  },
-)
-
-When('I close settings with Escape', async ({ page }) => {
-  await page.keyboard.press('Escape')
-})
-
-Then('focus returns to the settings button', async ({ page }) => {
-  await expect(page.getByRole('dialog')).not.toBeVisible()
-  await expect(
-    page.getByRole('button', { name: 'Settings', exact: true }),
-  ).toBeFocused()
-})
-
-When('my preferences become unreadable', async ({ page }) => {
-  await page.evaluate(() =>
-    localStorage.setItem(
-      'hamcrab.settings.v1',
-      '{"language":"fr","caseColor":"invalid"}',
-    ),
-  )
-})
-
-When('saving preferences is unavailable', async ({ page }) => {
-  await page.evaluate(() => {
-    const setItem = Storage.prototype.setItem
-    Storage.prototype.setItem = function (key, value) {
-      if (key === 'hamcrab.settings.v1')
-        throw new DOMException('Storage full', 'QuotaExceededError')
-      setItem.call(this, key, value)
-    }
-  })
-})
-
-Then('I see that my settings are temporary', async ({ page }) => {
-  await new SettingsPage(page).open()
-  await expect(page.getByRole('dialog').getByRole('alert')).toContainText(
-    'Die Einstellungen konnten nicht gespeichert werden.',
-  )
 })
 
 When(
