@@ -63,12 +63,21 @@ onMounted(() => {
     controls.maxPolarAngle = Math.PI * 0.51
     controls.rotateSpeed = 0.6
     controls.update()
+    let needsRender = true
+    const invalidate = () => {
+      needsRender = true
+    }
+    controls.addEventListener('change', invalidate)
     const creature = createCreature()
     creature.setPalette(props.palette)
     const stopPaletteWatch = watch(
       () => props.palette,
-      (palette) => creature.setPalette(palette),
+      (palette) => {
+        creature.setPalette(palette)
+        invalidate()
+      },
     )
+    const stopSleepingWatch = watch(() => props.sleeping, invalidate)
     const snackHolder = new THREE.Group()
     snackHolder.visible = false
     creature.root.add(snackHolder)
@@ -78,6 +87,7 @@ onMounted(() => {
         disposeObject(snackHolder)
         snackHolder.clear()
         if (kind) snackHolder.add(createSnack(kind))
+        invalidate()
       },
       { immediate: true },
     )
@@ -130,20 +140,24 @@ onMounted(() => {
         .multiplyScalar(distance)
         .add(controls.target)
       camera.updateProjectionMatrix()
+      invalidate()
     }
     const observer = new ResizeObserver(resize)
     observer.observe(element)
     resize()
     const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)')
+    reducedMotion.addEventListener('change', invalidate)
     let reactionStart = -10
     const clock = new THREE.Clock()
     let frame = 0
     let ready = false
     react = () => {
       reactionStart = clock.getElapsedTime()
+      invalidate()
     }
     rotate = (direction) => {
       creature.root.rotation.y += direction * 0.2
+      invalidate()
     }
     const animate = () => {
       if (!renderer || !scene) return
@@ -161,7 +175,14 @@ onMounted(() => {
         age >= 0 &&
         age < duration &&
         !props.sleeping
-      activeSnack.value = serving ? props.snack : null
+      controls.update()
+      const nextSnack = serving ? props.snack : null
+      const snackChanged = activeSnack.value !== nextSnack
+      if (reducedMotion.matches && !needsRender && !snackChanged) {
+        frame = requestAnimationFrame(animate)
+        return
+      }
+      activeSnack.value = nextSnack
       snackHolder.visible = !!serving
       if (serving) {
         const lift = reducedMotion.matches
@@ -260,8 +281,8 @@ onMounted(() => {
           ? 0
           : Math.sin(time * 1.2 - index * 0.6) * 0.018
       })
-      controls.update()
       renderer.render(scene, camera)
+      needsRender = false
       if (!ready) {
         ready = true
         status.value = 'ready'
@@ -273,6 +294,7 @@ onMounted(() => {
       event.preventDefault()
       stopPaletteWatch()
       stopSnackWatch()
+      stopSleepingWatch()
       cancelAnimationFrame(frame)
       status.value = 'fallback'
     }
@@ -280,7 +302,9 @@ onMounted(() => {
     cleanup = () => {
       stopPaletteWatch()
       stopSnackWatch()
+      stopSleepingWatch()
       cancelAnimationFrame(frame)
+      reducedMotion.removeEventListener('change', invalidate)
       observer.disconnect()
       controls.dispose()
       renderer?.domElement.removeEventListener('webglcontextlost', contextLost)
@@ -288,6 +312,7 @@ onMounted(() => {
       key.shadow.dispose()
       renderer?.dispose()
       renderer?.domElement.remove()
+      renderer?.forceContextLoss()
     }
     animate()
   } catch {

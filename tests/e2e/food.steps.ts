@@ -124,7 +124,7 @@ Then(
     await expect(dialog).toBeInViewport({ ratio: 1 })
     for (const name of ['Franzbrötchen', 'Döner kebab', 'Augustiner beer']) {
       const option = dialog.getByRole('radio', { name, exact: true })
-      await option.scrollIntoViewIfNeeded()
+      await option.locator('..').scrollIntoViewIfNeeded()
       await expect(option).toBeInViewport({ ratio: 1 })
     }
     const give = dialog.getByRole('button', { name: 'Give to Pinchy' })
