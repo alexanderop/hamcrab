@@ -36,14 +36,14 @@ onMounted(() => {
     renderer.shadowMap.type = THREE.PCFSoftShadowMap
     renderer.outputColorSpace = THREE.SRGBColorSpace
     renderer.toneMapping = THREE.ACESFilmicToneMapping
-    renderer.toneMappingExposure = 0.95
+    renderer.toneMappingExposure = 1.05
     renderer.domElement.setAttribute('aria-hidden', 'true')
     element.append(renderer.domElement)
     scene = new THREE.Scene()
     const camera = new THREE.PerspectiveCamera(34, 1, 0.1, 40)
-    camera.position.set(0.35, 2.75, 7.8)
+    camera.position.set(1.05, 2.6, 7.8)
     const controls = new OrbitControls(camera, renderer.domElement)
-    controls.target.set(0, 1.82, 0)
+    controls.target.set(0, 1.72, 0)
     controls.enableDamping = true
     controls.enableZoom = false
     controls.enablePan = false
@@ -53,9 +53,9 @@ onMounted(() => {
     controls.update()
     const creature = createCreature()
     scene.add(creature.root)
-    scene.add(new THREE.HemisphereLight('#fffaec', '#b3c7a9', 1.9))
-    const key = new THREE.DirectionalLight('#fff5dc', 2.3)
-    key.position.set(-3, 6, 5)
+    scene.add(new THREE.HemisphereLight('#fff0df', '#99a888', 1.25))
+    const key = new THREE.DirectionalLight('#fff0db', 3.1)
+    key.position.set(-3, 5, 6)
     key.castShadow = true
     key.shadow.mapSize.set(1024, 1024)
     key.shadow.camera.left = -3
@@ -65,14 +65,17 @@ onMounted(() => {
     key.shadow.normalBias = 0.025
     key.shadow.bias = -0.0002
     scene.add(key)
-    const fill = new THREE.DirectionalLight('#dbe6ff', 1.6)
-    fill.position.set(4, 3, -2)
+    const fill = new THREE.DirectionalLight('#e7edff', 0.85)
+    fill.position.set(4, 3, 3)
     scene.add(fill)
+    const rim = new THREE.DirectionalLight('#ffe4b9', 2.4)
+    rim.position.set(2, 4, -4)
+    scene.add(rim)
     const pedestal = new THREE.Mesh(
-      new THREE.CylinderGeometry(1.77, 1.8, 0.14, 96),
-      new THREE.MeshStandardMaterial({ color: '#d4dcc3', roughness: 1 }),
+      new THREE.CylinderGeometry(1.35, 1.38, 0.06, 64),
+      new THREE.MeshStandardMaterial({ color: '#bbc7a0', roughness: 1 }),
     )
-    pedestal.position.y = -0.05
+    pedestal.position.y = -0.09
     pedestal.receiveShadow = true
     scene.add(pedestal)
     const ground = new THREE.Mesh(
@@ -89,7 +92,7 @@ onMounted(() => {
       if (!width || !height || !renderer) return
       renderer.setSize(width, height)
       camera.aspect = width / height
-      camera.position.setLength(camera.aspect < 0.9 ? 8.8 : 8.3)
+      camera.position.setLength(camera.aspect < 0.9 ? 8.35 : 7.8)
       camera.updateProjectionMatrix()
     }
     const observer = new ResizeObserver(resize)
@@ -115,33 +118,73 @@ onMounted(() => {
       const idle = reducedMotion.matches
         ? 0
         : Math.sin(time * (props.sleeping ? 1.3 : 2))
-      creature.root.position.y =
-        props.reaction === 'play' && reacting
-          ? Math.abs(Math.sin(age * 10)) * 0.24 * energy
-          : idle * 0.018
-      creature.root.rotation.z =
-        props.reaction === 'pet' && reacting
-          ? Math.sin(age * 7) * 0.07 * energy
+      const still = reducedMotion.matches
+      const play = reacting && props.reaction === 'play'
+      const feed = reacting && props.reaction === 'feed'
+      const pet = reacting && props.reaction === 'pet'
+      const anticipation = play ? Math.sin(Math.min(age / 0.2, 1) * Math.PI) : 0
+      const jump =
+        play && age > 0.2
+          ? Math.max(0, Math.sin(((age - 0.2) / 0.65) * Math.PI)) * energy
           : 0
-      creature.head.rotation.z = idle * 0.014
+      const breathe = idle * (props.sleeping ? 0.009 : 0.004)
+      creature.root.position.y = jump * 0.29 - anticipation * 0.05
+      creature.root.scale.set(
+        1 + anticipation * 0.035 - jump * 0.025 - breathe * 0.4,
+        1 - anticipation * 0.06 + jump * 0.045 + breathe,
+        1,
+      )
+      creature.root.rotation.z = pet ? Math.sin(age * 6) * 0.065 * energy : 0
+      const curious = still
+        ? 0
+        : Math.pow(Math.max(0, Math.sin(time * 0.39)), 6)
+      creature.head.rotation.z =
+        -0.035 + curious * 0.085 + (pet ? energy * 0.09 : 0)
+      creature.head.rotation.y =
+        still || props.sleeping ? 0 : Math.sin(time * 0.46) * 0.045
       creature.head.rotation.x = props.sleeping
-        ? 0.075
-        : props.reaction === 'feed'
-          ? Math.sin(age * 16) * 0.04 * energy
-          : 0
-      const blink =
-        props.sleeping || (!reducedMotion.matches && time % 5.5 > 5.32)
+        ? 0.13
+        : feed
+          ? Math.sin(age * 15) * 0.025 * energy
+          : -curious * 0.025
+      const blinkPhase = time % 6.1
+      const blink = props.sleeping
+        ? 1
+        : still
+          ? 0
+          : Math.max(0, 1 - Math.abs(blinkPhase - 5.78) / 0.13)
+      creature.lids.forEach((lid) => {
+        lid.rotation.x = -Math.PI / 2 + blink * Math.PI
+      })
+      creature.closedEyes.forEach((eye) => {
+        eye.visible = blink > 0.93
+      })
       creature.eyes.forEach((eye) => {
-        eye.scale.y = blink ? 0.09 : 1
+        eye.position.x =
+          still || props.sleeping ? 0 : Math.sin(time * 0.46) * 0.016
+        eye.position.y = feed ? -energy * 0.014 : curious * 0.007
+      })
+      creature.brows.forEach((brow, index) => {
+        brow.rotation.z =
+          (index === 0 ? -1 : 1) * (curious * 0.12 + (pet ? energy * 0.15 : 0))
+        brow.position.y = 0.345 + curious * 0.025
       })
       creature.paws.forEach((paw, index) => {
-        paw.rotation.z =
-          (index === 0 ? 1 : -1) *
-          energy *
-          (props.reaction === 'feed' ? -0.4 : 0.12)
+        paw.rotation.z = (index === 0 ? 1 : -1) * energy * (feed ? -0.5 : 0.15)
+        paw.position.y = 1.22 + (feed ? energy * 0.075 : 0)
       })
       creature.claws.forEach((claw, index) => {
-        claw.rotation.z = (index === 0 ? 1 : -1) * (energy * 0.3 + idle * 0.018)
+        claw.rotation.z =
+          (index === 0 ? -1 : 1) * (-0.42 + energy * 0.23 + idle * 0.025)
+      })
+      creature.antennae.forEach((antenna, index) => {
+        antenna.rotation.z = still
+          ? 0
+          : Math.sin(time * 2.1 - index * 0.7) * 0.025 +
+            Math.sin(age * 8 - 0.65) * energy * 0.12
+        antenna.rotation.x = still
+          ? 0
+          : Math.sin(time * 1.7 - index * 0.6) * 0.035
       })
       controls.update()
       renderer.render(scene, camera)
