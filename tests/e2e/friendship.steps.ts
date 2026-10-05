@@ -60,6 +60,9 @@ Then('Pinchy enjoys the strawberry', async ({ page }) => {
   await new FriendshipPage(page).expectPoints(43)
 })
 Given('I am one point away from the play ball', async ({ page }) => {
+  const at = new Date('2026-01-01T12:00:00Z')
+  await page.clock.install({ time: at })
+  await page.clock.pauseAt(new Date(at.getTime() + 1000))
   const home = new FriendshipPage(page)
   await home.visit()
   await home.seed(59)
@@ -68,12 +71,15 @@ Then('the new ball participates in play', async ({ page, browserName }) => {
   const home = new FriendshipPage(page)
   await expect(home.habitat).toHaveAttribute('data-ball', 'true')
   await page.emulateMedia({ reducedMotion: 'no-preference' })
+  await page.clock.fastForward(7000)
   await new ShellGamePage(page).finish()
+  await page.clock.fastForward(1150)
   await expect(home.habitat).toHaveAttribute('data-ball-playing', 'true')
   await page.screenshot({
     path: `test-results/friendship-ball-play-${browserName}.png`,
   })
   await page.emulateMedia({ reducedMotion: 'reduce' })
+  await page.clock.resume()
 })
 Given('I am one point away from the home flower', async ({ page }) => {
   const home = new FriendshipPage(page)
