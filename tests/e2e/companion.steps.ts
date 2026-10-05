@@ -64,6 +64,7 @@ When('I clean the home and give medicine', async ({ page, browserName }) => {
   await life.dialog
     .getByRole('button', { name: 'Give medicine', exact: true })
     .click()
+  await expect(life.dialog).toContainText('Your friend feels well again.')
   await life.close()
 })
 Then(
@@ -224,6 +225,7 @@ When('I set bedtime to the next hour', async ({ page }) => {
   await life.dialog
     .getByRole('button', { name: 'Save routine', exact: true })
     .click()
+  await expect(life.dialog).toContainText('Routine saved.')
   await life.close()
 })
 When('the scheduled bedtime arrives', async ({ page }) => {
