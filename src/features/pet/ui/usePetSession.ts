@@ -1,3 +1,4 @@
+import type { LifeCommand, LifeMessage } from '../domain/life'
 import type { AdultVariant } from '../domain/lifecycle'
 import { onMounted, onUnmounted, readonly, ref } from 'vue'
 import { parsePetName, type CareAction, type CareMessage } from '../domain/pet'
@@ -11,6 +12,7 @@ export function usePetSession(service: PetService) {
   const error = ref<'invalid' | 'save' | 'load' | null>(null)
   const message = ref<CareMessage | 'welcome' | 'hatched' | 'grown'>('welcome')
   const saved = ref(false)
+  const lifeMessage = ref<LifeMessage | null>(null)
   let disposed = false
   let timer: ReturnType<typeof setInterval> | undefined
 
@@ -48,11 +50,35 @@ export function usePetSession(service: PetService) {
     try {
       const result = await service.care(action)
       if (disposed) return false
-      const grew =
-        pet.value.lifecycle.stage === 'baby' &&
-        result.pet.lifecycle.stage === 'adult'
+      const grew = pet.value.lifecycle.stage !== result.pet.lifecycle.stage
       pet.value = result.pet
       message.value = grew ? 'grown' : result.message
+      error.value = null
+      saved.value = true
+      return result.accepted
+    } catch (cause) {
+      if (!disposed) reportError(cause, true)
+      return false
+    } finally {
+      if (!disposed) busy.value = false
+    }
+  }
+
+  async function life(command: LifeCommand) {
+    if (!ready.value || busy.value || disposed || error.value) return false
+    busy.value = true
+    saved.value = false
+    try {
+      const result = await service.life(command)
+      if (disposed) return false
+      const grew =
+        pet.value.lifecycle.stage !== result.pet.lifecycle.stage &&
+        command.type !== 'nextGeneration'
+      pet.value = result.pet
+      lifeMessage.value = result.message
+      if (grew) message.value = 'grown'
+      else if (result.message === 'gameFinished') message.value = 'play'
+      else if (result.message === 'newGeneration') message.value = 'egg'
       error.value = null
       saved.value = true
       return result.accepted
@@ -144,6 +170,8 @@ export function usePetSession(service: PetService) {
     message: readonly(message),
     saved: readonly(saved),
     care,
+    life,
+    lifeMessage: readonly(lifeMessage),
     hatch,
     chooseVariant,
     rename,

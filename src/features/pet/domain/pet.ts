@@ -1,3 +1,11 @@
+import {
+  createLife,
+  syncInventory,
+  toiletInterval,
+  hour,
+  type PetLife,
+} from './life'
+import { advanceRoutine, nextBedtime, nextWake } from './routine'
 import { dayLength, recordCare, type Lifecycle } from './lifecycle'
 import { foods, type FoodId } from './foods'
 import {
@@ -11,6 +19,7 @@ import {
 
 export type PetSnapshot = Readonly<{
   version: 1
+  life: PetLife
   name: string
   fullness: number
   happiness: number
@@ -58,6 +67,7 @@ const clamp = (value: number) => Math.min(100, Math.max(0, value))
 export function createPet(now: number): PetSnapshot {
   return {
     version: 1,
+    life: createLife(now),
     name: 'Pinchy',
     fullness: 65,
     happiness: 78,
@@ -73,14 +83,45 @@ export function createPet(now: number): PetSnapshot {
 
 export function advancePet(pet: PetSnapshot, now: number): PetSnapshot {
   if (pet.lifecycle.stage === 'egg') return pet
-  const hours = Math.min(24, Math.max(0, now - pet.updatedAt) / 3_600_000)
+  const effective = Math.max(pet.updatedAt, now)
+  const hours = Math.min(24, (effective - pet.updatedAt) / hour)
+  const routine = advanceRoutine(pet.life, pet.energy, pet.updatedAt, effective)
+  const due = pet.life.health.nextToiletAt
+  const misses =
+    effective >= due
+      ? Math.min(
+          4,
+          Math.floor(
+            (effective - Math.max(due, effective - dayLength)) / toiletInterval,
+          ) + 1,
+        )
+      : 0
+  const waste = Math.min(3, pet.life.health.waste + misses)
   return {
     ...pet,
     fullness: clamp(pet.fullness - 4 * hours),
     happiness: clamp(pet.happiness - 3 * hours),
-    energy: clamp(pet.energy + (pet.sleeping ? 20 : -5) * hours),
-    updatedAt: Math.max(pet.updatedAt, now),
-    friendship: advanceFriendship(pet.friendship, Math.max(now, pet.updatedAt)),
+    energy: routine.energy,
+    sleeping: routine.sleeping,
+    life: syncInventory(
+      {
+        ...pet.life,
+        sleep: routine.sleep,
+        health: {
+          waste,
+          unwell: pet.life.health.unwell || waste >= 3,
+          nextToiletAt:
+            effective >= due
+              ? due +
+                (Math.floor((effective - due) / toiletInterval) + 1) *
+                  toiletInterval
+              : due,
+        },
+      },
+      pet.friendship.points,
+    ),
+    updatedAt: effective,
+    friendship: advanceFriendship(pet.friendship, effective),
   }
 }
 
@@ -141,7 +182,11 @@ export function careForPet(
         pet: {
           ...cared,
           fullness: clamp(pet.fullness + food.fullness),
-          happiness: clamp(pet.happiness + food.happiness),
+          happiness: clamp(
+            pet.happiness +
+              food.happiness +
+              (action.food === pet.life.favoriteFood ? 3 : 0),
+          ),
           energy: clamp(pet.energy + food.energy),
         },
         accepted: true,
@@ -152,7 +197,11 @@ export function careForPet(
       return {
         pet: {
           ...cared,
-          happiness: clamp(pet.happiness + 15),
+          happiness: clamp(
+            pet.happiness +
+              15 +
+              (pet.life.equipment.toy === pet.life.favoriteToy ? 2 : 0),
+          ),
           energy: clamp(pet.energy - 10),
         },
         accepted: true,
@@ -160,19 +209,49 @@ export function careForPet(
       }
     case 'pet':
       return {
-        pet: { ...cared, happiness: clamp(pet.happiness + 5) },
+        pet: {
+          ...cared,
+          happiness: clamp(
+            pet.happiness + 5 + (pet.life.personality === 'gentle' ? 2 : 0),
+          ),
+        },
         accepted: true,
         message: 'pet',
       }
     case 'sleep':
       return {
-        pet: { ...cared, sleeping: true },
+        pet: {
+          ...cared,
+          sleeping: true,
+          life: {
+            ...pet.life,
+            sleep: {
+              ...pet.life.sleep,
+              mode: 'manual',
+              until: pet.life.routine.enabled
+                ? nextWake(pet.life, pet.updatedAt)
+                : 0,
+            },
+          },
+        },
         accepted: true,
         message: 'sleep',
       }
     case 'wake':
       return {
-        pet: { ...cared, sleeping: false },
+        pet: {
+          ...cared,
+          sleeping: false,
+          life: {
+            ...pet.life,
+            sleep: {
+              ...pet.life.sleep,
+              mode: 'awake',
+              until: 0,
+              overrideUntil: nextBedtime(pet.life, pet.updatedAt),
+            },
+          },
+        },
         accepted: true,
         message: 'wake',
       }
@@ -189,6 +268,13 @@ export function hatchPet(
     pet: {
       ...pet,
       lifecycle: { stage: 'baby', days: [] },
+      life: {
+        ...pet.life,
+        health: {
+          ...pet.life.health,
+          nextToiletAt: updatedAt + toiletInterval,
+        },
+      },
       updatedAt,
       friendship: advanceFriendship(pet.friendship, updatedAt),
     },

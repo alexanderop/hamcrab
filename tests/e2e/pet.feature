@@ -5,9 +5,9 @@ Feature: A little friendship with Pinchy
     When I feed Pinchy
     Then Pinchy has 85 fullness, 78 happiness and 72 energy
     When I play with Pinchy
-    Then Pinchy has 85 fullness, 93 happiness and 62 energy
+    Then Pinchy has 85 fullness, 98 happiness and 62 energy
     When I reload my home
-    Then Pinchy has 85 fullness, 93 happiness and 62 energy
+    Then Pinchy has 85 fullness, 98 happiness and 62 energy
     And I have shared 2 caring gestures
 
   Scenario: Sleeping restores energy and pauses active care

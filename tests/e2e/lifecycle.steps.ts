@@ -84,11 +84,13 @@ Given('my baby has nine earlier care days', async ({ page }) => {
         const store = transaction.objectStore('pets')
         const read = store.get('pinchy')
         read.onsuccess = () => {
+          const legacy = { ...read.result }
+          delete legacy.life
           const now = Date.now()
           const day = Math.floor(now / 86_400_000)
           store.put(
             {
-              ...read.result,
+              ...legacy,
               createdAt: now - 10 * 86_400_000,
               lifecycle: {
                 stage: 'baby',
@@ -115,7 +117,7 @@ Given('my baby has nine earlier care days', async ({ page }) => {
 })
 When('I cuddle my growing friend', async ({ page }) => {
   await page.getByRole('button', { name: 'Pet', exact: true }).click()
-  await expect(page.locator('.message-strip')).toContainText('all grown up')
+  await expect(page.locator('.message-strip')).toContainText('has grown')
 })
 Then('my friend is grown up', async ({ page, browserName }) => {
   await expect(page.getByText('Adult', { exact: true })).toBeVisible()

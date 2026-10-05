@@ -11,3 +11,8 @@ export { default as FriendshipPanel } from './ui/FriendshipPanel.vue'
 export { default as LifecyclePanel } from './ui/LifecyclePanel.vue'
 
 export { lifecycleView, type AdultVariant } from './domain/lifecycle'
+
+export { lifeView, type LifeCommand } from './domain/life'
+export { lifeText } from './ui/lifeText'
+export { default as LifePanel } from './ui/LifePanel.vue'
+export { default as ShellGame } from './ui/ShellGame.vue'

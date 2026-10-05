@@ -86,5 +86,44 @@ export function createRewards() {
   }
   oval(flower, gold, [0, 0.68, 0.07], [0.07, 0.07, 0.04])
   flower.position.set(-1.02, -0.055, 0.42)
-  return { ribbon, ball, flower }
+  const cap = new THREE.Group()
+  oval(cap, mint, [0, 0, 0], [0.42, 0.2, 0.33])
+  oval(cap, gold, [0, -0.08, 0.29], [0.43, 0.035, 0.3])
+  oval(cap, gold, [0, 0.2, 0], [0.055, 0.035, 0.055])
+  cap.position.set(0.18, 0.68, 0.28)
+  cap.rotation.z = -0.16
+  const shell = new THREE.Group()
+  for (let index = -2; index <= 2; index++) {
+    const rib = oval(
+      shell,
+      index % 2 === 0 ? pink : gold,
+      [index * 0.065, 0.1, 0],
+      [0.07, 0.18, 0.2],
+    )
+    rib.rotation.z = -index * 0.24
+  }
+  oval(shell, pink, [0, 0.02, 0.15], [0.11, 0.06, 0.1])
+  shell.position.set(0.86, 0, 0.82)
+  shell.rotation.x = -0.35
+  const pebble = new THREE.Group()
+  const stone = new THREE.MeshStandardMaterial({
+    color: '#819aaa',
+    roughness: 0.95,
+  })
+  oval(pebble, stone, [0, 0.08, 0], [0.3, 0.13, 0.24])
+  oval(pebble, stone, [0.04, 0.24, 0], [0.23, 0.1, 0.17])
+  oval(pebble, stone, [-0.015, 0.36, 0], [0.14, 0.075, 0.12])
+  pebble.position.set(-1.02, -0.055, 0.42)
+  const wasteMaterial = new THREE.MeshStandardMaterial({
+    color: '#9a7351',
+    roughness: 1,
+  })
+  const waste = Array.from({ length: 3 }, (_, index) => {
+    const pile = new THREE.Group()
+    oval(pile, wasteMaterial, [0, 0.04, 0], [0.14, 0.07, 0.11])
+    oval(pile, wasteMaterial, [0.01, 0.12, 0], [0.09, 0.06, 0.08])
+    pile.position.set(-0.6 + index * 0.55, -0.045, 1.08)
+    return pile
+  })
+  return { ribbon, ball, flower, cap, shell, pebble, waste }
 }

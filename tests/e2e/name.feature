@@ -17,7 +17,7 @@ Feature: A personal name for my companion
     When I rename and play in two homes at the same time
     And I reload my home
     Then my companion is called "Kalle" throughout the home
-    And Pinchy has 65 fullness, 93 happiness and 62 energy
+    And Pinchy has 65 fullness, 98 happiness and 62 energy
     And I have shared 1 caring gestures
 
   Scenario Outline: A long name stays readable on a small screen

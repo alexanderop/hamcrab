@@ -1,3 +1,4 @@
+import { ShellGamePage } from './pages/shell-game'
 import { createBdd } from 'playwright-bdd'
 import { expect } from '@playwright/test'
 import { FoodMenuPage } from './pages/food-menu'
@@ -67,7 +68,7 @@ Then('the new ball participates in play', async ({ page, browserName }) => {
   const home = new FriendshipPage(page)
   await expect(home.habitat).toHaveAttribute('data-ball', 'true')
   await page.emulateMedia({ reducedMotion: 'no-preference' })
-  await page.getByRole('button', { name: 'Play', exact: true }).click()
+  await new ShellGamePage(page).finish()
   await expect(home.habitat).toHaveAttribute('data-ball-playing', 'true')
   await page.screenshot({
     path: `test-results/friendship-ball-play-${browserName}.png`,
@@ -110,6 +111,16 @@ When('I play from two homes at once', async ({ page, context }) => {
     page.getByRole('button', { name: 'Play', exact: true }).click(),
     second.getByRole('button', { name: 'Play', exact: true }).click(),
   ])
+  await new ShellGamePage(page).finishOpen()
+  const otherGame = new ShellGamePage(second).dialog
+  const ready = otherGame.getByRole('button', { name: 'Ready', exact: true })
+  if (await ready.isVisible()) {
+    await ready.click()
+    await otherGame
+      .getByRole('button', { name: 'Shell 1', exact: true })
+      .click()
+  }
+  await second.keyboard.press('Escape')
   await expect(page.getByRole('status')).toContainText('Your progress is saved')
   await expect(second.getByRole('status')).toContainText(
     'Your progress is saved',

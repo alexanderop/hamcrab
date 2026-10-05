@@ -91,3 +91,13 @@ Die Entwicklung speichert höchstens neun Baby-Tage mit nötigen Mahlzeiten, Spi
 Node-Tests prüfen Tagesgrenzen, Futterrotation, den zehnten Tag, Gleichstand und unveränderliche Auswahl sowie die Bewegungen und Ruhebedingungen. Browser-Tests prüfen strikte Migration, echte konkurrierende IndexedDB-Auswahl, Speicherung aller Formen und zugängliche Auswahl in beiden Sprachen. Ein injizierter fehlgeschlagener Speicherzugriff prüft, dass die Oberfläche die ausstehende Auswahl behält.
 
 `tests/e2e/variants.feature` wählt jede Form über die Oberfläche eines alten erwachsenen Spielstands, führt die jeweilige Pflege aus und lädt die gespeicherte Form offline neu. Zwei echte Tabs prüfen eine veraltete konkurrierende Auswahl. Die Playwright-Uhr hält Bewegungsphasen für Canvas-Bilder unter `.audit/variants/` fest; deren Unterschiede beweisen Bewegung, die zusätzliche Sichtprüfung beurteilt Wangen, Jonglierbogen und Anschmiegen. Der Wirbelwind nutzt seinen eigenen sichtbaren Ball, ohne die Freundschaftsfreischaltung zu verändern. Kurze, schmale und hohe Ansichten behalten erreichbare Pflegeknöpfe und mindestens 90 Pixel für die Szene.
+
+## Alltag, Spiel und Generationen
+
+`tests/unit/life.test.ts` prüft Toilettenfenster, begrenzten Schmutz, Krankheit und Erholung, individuelle Boni, Inventarauswahl, Spielrunden mit einmaliger Belohnung, freiwillige Generationen und alte Speicherformen. Die Routine-Tests vergleichen einen langen Zeitabschnitt mit mehreren kurzen Abschnitten und prüfen Nachtgrenzen, festen UTC-Versatz, Nickerchen und manuelle Unterbrechung.
+
+`tests/browser/persistence.test.ts` ergänzt echte IndexedDB-Konkurrenz für Spielrunden und Familienwechsel. `tests/browser/life.test.ts` bedient die neuen Dialoge per Tastatur und prüft gespeicherte Auswahl, unverlorene Routineentwürfe und einen fehlgeschlagenen Spielzug mit anschließendem Wiederholen.
+
+`tests/e2e/companion.feature` prüft die vollständige Produktionsverdrahtung. Pflege beseitigt sichtbare Krankheit und Schmutz, ein echtes Spiel und ausgewählte Gegenstände überstehen einen Offline-Reload, Kind und Jugendlicher erscheinen im Habitat, das Familienalbum bleibt nach dem Wechsel erhalten, und der gespeicherte Rhythmus steuert Schlaf. Ein kleiner Bildschirm hält Dialoge und Pflegeknöpfe erreichbar. Die Bildbelege liegen unter `.audit/companion/`.
+
+Bestehende Spiel-Journeys führen jetzt die fünf Muschelrunden aus. Historische Speicherfixtures lassen den neuen `life`-Block ausdrücklich weg. Aktuelle Fixtures müssen die aktuellen Invarianten erfüllen; ein alter Datensatz und ein fehlerhafter neuer Datensatz sind unterschiedliche Testfälle.

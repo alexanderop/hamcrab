@@ -1,3 +1,4 @@
+import { ShellGamePage } from './pages/shell-game'
 import { FoodMenuPage } from './pages/food-menu'
 import { createBdd } from 'playwright-bdd'
 import { expect } from '@playwright/test'
@@ -23,16 +24,19 @@ Given('my longtime adult has no chosen form', async ({ page }) => {
         const transaction = database.transaction('pets', 'readwrite')
         const store = transaction.objectStore('pets')
         const read = store.get('pinchy')
-        read.onsuccess = () =>
+        read.onsuccess = () => {
+          const legacy = { ...read.result }
+          delete legacy.life
           store.put(
             {
-              ...read.result,
+              ...legacy,
               lifecycle: { stage: 'adult' },
               name: 'Milo',
               careCount: 42,
             },
             'pinchy',
           )
+        }
         transaction.oncomplete = () => resolve()
         transaction.onerror = () => reject(transaction.error)
       })
@@ -78,13 +82,11 @@ Then(
       .screenshot({ path: `.audit/variants/${form}-rest-${browserName}.png` })
     if (activity === 'eat') {
       await new FoodMenuPage(page, 'Milo').feed()
-    } else
-      await page
-        .getByRole('button', {
-          name: activity === 'play' ? 'Play' : 'Pet',
-          exact: true,
-        })
-        .click()
+    } else if (activity === 'play') {
+      await new ShellGamePage(page).finish()
+    } else {
+      await page.getByRole('button', { name: 'Pet', exact: true }).click()
+    }
     await expect(
       page.getByText('43 caring gestures', { exact: true }),
     ).toBeVisible()
@@ -149,7 +151,7 @@ Then(
       })
     }
     await page.clock.pauseAt(
-      new Date((await page.evaluate(() => Date.now())) + 100),
+      new Date((await page.evaluate(() => Date.now())) + 60_000),
     )
   },
 )

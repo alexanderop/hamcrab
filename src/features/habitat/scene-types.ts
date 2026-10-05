@@ -1,3 +1,8 @@
 export type { CareCue, CostumePalette, SnackKind } from './domain/scene-types'
 
-export type LifeStage = 'egg' | 'baby' | 'adult'
+export type {
+  LifeStage,
+  Outfit,
+  Toy,
+  Decoration,
+} from './domain/lifePresentation'

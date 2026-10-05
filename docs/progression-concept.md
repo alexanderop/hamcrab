@@ -6,7 +6,7 @@ Hamcrab soll bei kurzen Besuchen Freude machen. Pinchy reagiert auf Pflege, beko
 
 Freundschaft misst gemeinsame Erlebnisse. Freundschaftspunkte schalten Futter, Accessoires und Gegenstände frei. Sie bleiben nach einer Pause erhalten.
 
-Entwicklung beschreibt Pinchys Lebensphase. Neue Spielstände beginnen als Ei, schlüpfen auf Knopfdruck und wachsen nach zehn Pflegetagen vom Baby zum Erwachsenen. Freundschaftspunkte und Pflegetage sind unabhängig. Kind, Jugendlicher und verzweigte Formen bleiben spätere Ideen.
+Entwicklung beschreibt Pinchys Lebensphase. Neue Spielstände beginnen als Ei, schlüpfen auf Knopfdruck und wachsen nach zehn Pflegetagen vom Baby zum Erwachsenen. Freundschaftspunkte und Pflegetage sind unabhängig. Kind ab drei und Jugendlicher ab sechs Pflegetagen ergänzen das Wachstum. Drei erwachsene Formen entstehen aus den gemeinsamen Erlebnissen.
 
 Die Bildreferenz zeigt die Idee einer Entwicklung durch Lebensraum und Nahrung. Hamcrab verwendet dafür eigene Figuren und Animationen. Pinchy bleibt als Hamster im Krabbenkostüm erkennbar.
 
@@ -30,7 +30,7 @@ Sinnvolle Pflege gibt Punkte. Wiederholungen haben eine Grenze. Füttern bei vol
 
 ## Entwicklung vom Ei zum erwachsenen Hamcrab
 
-Diese drei Stufen sind implementiert.
+Ei, Baby, Kind, Jugendlicher und Erwachsener sind implementiert. Die aktuellen Schwellen und Alltagsregeln stehen in [Pinchys Alltag](companion-life.md).
 
 | Stufe     | Auslöser                               | Sichtbares Ergebnis                                                                            |
 | --------- | -------------------------------------- | ---------------------------------------------------------------------------------------------- |
@@ -42,7 +42,7 @@ Ein Pflegetag zählt durch Streicheln, Füttern unter 85 Sättigung oder Spielen
 
 Die Tage müssen nicht aufeinanderfolgen. Abwesenheit erzeugt keine Pflegetage und nimmt keinen Fortschritt weg. Eier verlieren keine Bedürfnisse. Schlüpfen vergibt weder Freundschaftspunkte noch Pflegetage oder Pflegegesten. Wiederholtes Schlüpfen, auch in zwei Tabs, verändert ein bereits geschlüpftes Tier nicht.
 
-Das Baby speichert höchstens neun sortierte, verschiedene UTC-Tage. Beim zehnten Tag wird es erwachsen. Eine zurückgestellte Uhr dupliziert keinen Pflegetag. Der Freundschaftsdeckel von 100 Punkten stoppt das Wachstum nicht.
+Das wachsende Tier speichert höchstens neun sortierte, verschiedene UTC-Tage. Beim zehnten Tag wird es erwachsen. Eine zurückgestellte Uhr dupliziert keinen Pflegetag. Der Freundschaftsdeckel von 100 Punkten stoppt das Wachstum nicht.
 
 Schlüpfen und Erwachsenwerden zeigen eine kurze Größenanimation und eine Textmeldung. Reduzierte Bewegung zeigt die neue Form sofort. Ohne WebGL bleiben Lebensphase, Pflegetage und Schlüpfen zugänglich.
 
@@ -50,13 +50,13 @@ Bestehende Spielstände ohne Lebensphase werden beim Lesen als erwachsen verstan
 
 ## Erlebnisse prägen die spätere Form
 
-Für eine erste verzweigte Entwicklung reichen drei gleichwertige Richtungen.
+Die drei gleichwertigen erwachsenen Formen sind Genießer, Wirbelwind und Kuschelfreund. Die frühere Entdecker-Idee wurde durch Kuscheln als dritte alltägliche Erfahrung ersetzt.
 
-| Richtung  | Prägende Erlebnisse                   | Eigene Hamcrab-Merkmale                       |
-| --------- | ------------------------------------- | --------------------------------------------- |
-| Genießer  | Unterschiedliche Speisen ausprobieren | Runde Wangen, zufriedene Essensanimation      |
-| Spieler   | Gemeinsam mit Spielzeug spielen       | Sportliche Pose, lebhafte Scherenbewegung     |
-| Entdecker | Künftige Ausflüge und Funde           | Muscheldetails am Kostüm, neugierige Bewegung |
+| Richtung      | Prägende Erlebnisse                   | Eigene Hamcrab-Merkmale                   |
+| ------------- | ------------------------------------- | ----------------------------------------- |
+| Genießer      | Unterschiedliche Speisen ausprobieren | Runde Wangen, zufriedene Essensanimation  |
+| Spieler       | Gemeinsam mit Spielzeug spielen       | Sportliche Pose, lebhafte Scherenbewegung |
+| Kuschelfreund | Regelmäßiges Streicheln               | Sanftes Anschmiegen                       |
 
 Nur begrenzt gewertete Erlebnisse beeinflussen die Richtung. Eine letzte Mahlzeit überschreibt keine mehrtägige Geschichte. Bei Gleichstand wählen Spielende zwischen den passenden Formen. Vor der erwachsenen Entwicklung zeigt das Spiel Hinweise wie "Pinchy spielt besonders gern".
 
@@ -68,7 +68,7 @@ Ein Besuch beginnt mit Pinchys Reaktion und dem Tageswunsch. Danach folgt eine k
 
 Nach der ersten Ausbaustufe ergänzen Ausflüge diesen Ablauf. Ein Strandausflug liefert beim nächsten Besuch eine Muschel mit einer kurzen Geschichte. Das Ergebnis wartet ohne Ablaufdatum. Ein Album zeigt entdeckte Muscheln und garantiert nach mehreren Duplikaten einen neuen Fund.
 
-Ausflüge, Muschelalbum, Kind und Jugendlicher sowie verzweigte Formen gehören nicht zur aktuellen Implementierung. Sie brauchen jeweils eigene Inhalte und Spieltests. Es gibt keine verlorenen Serien, keinen Tod durch Abwesenheit und keine kostenpflichtigen Beschleuniger in diesem Konzept.
+Ausflüge und ein Muschelalbum bleiben spätere Ideen. Kind, Jugendlicher, erwachsene Formen sowie ein Familienalbum sind inzwischen implementiert. Pflege, Minispiel, Vorlieben, auswählbare Gegenstände und Tagesrhythmus beschreibt [Pinchys Alltag](companion-life.md). Es gibt keine verlorenen Serien, keinen Tod durch Abwesenheit und keine kostenpflichtigen Beschleuniger in diesem Konzept.
 
 ## Spieltests vor weiteren Inhalten
 

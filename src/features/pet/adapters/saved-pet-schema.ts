@@ -1,3 +1,6 @@
+import { lifeSchema } from './life-schema'
+import { createLife, syncInventory } from '../domain/life'
+import { growingStage } from '../domain/lifecycle'
 import { z } from 'zod'
 import {
   adultVariants,
@@ -73,11 +76,11 @@ const day = z
     cuddled: z.boolean(),
   })
   .strict()
-const lifecycle = z.union([
+const currentLifecycle = z.union([
   z.object({ stage: z.literal('egg') }).strict(),
   z
     .object({
-      stage: z.literal('baby'),
+      stage: z.enum(['baby', 'child', 'teen']),
       days: z
         .array(day)
         .max(requiredCareDays - 1)
@@ -89,6 +92,9 @@ const lifecycle = z.union([
     })
     .strict(),
   z.object({ stage: z.literal('adult'), identity }).strict(),
+])
+const lifecycle = z.union([
+  currentLifecycle,
   z
     .object({
       stage: z.literal('baby'),
@@ -101,7 +107,7 @@ const lifecycle = z.union([
     })
     .strict()
     .transform((old) => ({
-      stage: 'baby' as const,
+      stage: growingStage(old.careDays.length),
       days: old.careDays.map(neutralDay),
     })),
   z
@@ -109,7 +115,7 @@ const lifecycle = z.union([
     .strict()
     .transform(pendingAdult),
 ])
-const savedPetSchema = z
+const historicalPetSchema = z
   .union([
     z.object({ ...petFields, friendship, lifecycle }).strict(),
     z
@@ -129,7 +135,8 @@ const savedPetSchema = z
     (pet) =>
       pet.updatedAt >= pet.createdAt &&
       pet.friendship.daily.day <= Math.floor(pet.updatedAt / dayLength) &&
-      (pet.lifecycle.stage !== 'baby' ||
+      (pet.lifecycle.stage === 'egg' ||
+        pet.lifecycle.stage === 'adult' ||
         pet.lifecycle.days.every(
           (day) =>
             day.day >= Math.floor(pet.createdAt / dayLength) &&
@@ -137,8 +144,68 @@ const savedPetSchema = z
         )),
   )
 
+const currentPetSchema = z
+  .object({
+    ...petFields,
+    friendship,
+    lifecycle: currentLifecycle,
+    life: lifeSchema,
+  })
+  .strict()
+  .refine(
+    (pet) =>
+      pet.updatedAt >= pet.createdAt &&
+      pet.friendship.daily.day <= Math.floor(pet.updatedAt / dayLength) &&
+      pet.sleeping === (pet.life.sleep.mode !== 'awake') &&
+      ((pet.life.sleep.mode !== 'nap' &&
+        !(pet.life.sleep.mode === 'manual' && pet.life.routine.enabled)) ||
+        pet.life.sleep.until > pet.updatedAt) &&
+      pet.life.visits.every(
+        (day) =>
+          day >= Math.floor(pet.createdAt / dayLength) &&
+          day <= Math.floor(pet.updatedAt / dayLength),
+      ) &&
+      pet.life.album.every((entry) => entry.movedOutAt <= pet.createdAt) &&
+      (pet.lifecycle.stage === 'egg' ||
+        pet.lifecycle.stage === 'adult' ||
+        (pet.lifecycle.stage === growingStage(pet.lifecycle.days.length) &&
+          pet.lifecycle.days.every(
+            (day) =>
+              day.day >= Math.floor(pet.createdAt / dayLength) &&
+              day.day <= Math.floor(pet.updatedAt / dayLength),
+          ))) &&
+      (pet.life.equipment.outfit !== 'ribbon' ||
+        pet.life.owned.ribbon ||
+        pet.friendship.points >= 10) &&
+      (pet.life.equipment.toy !== 'ball' ||
+        pet.life.owned.ball ||
+        pet.friendship.points >= 60) &&
+      (pet.life.equipment.decoration !== 'flower' ||
+        pet.life.owned.flower ||
+        pet.friendship.points >= 100),
+  )
+
 export function parseSavedPet(value: unknown): PetSnapshot {
-  const result = savedPetSchema.safeParse(value)
+  if (typeof value === 'object' && value !== null && 'life' in value) {
+    const result = currentPetSchema.safeParse(value)
+    if (!result.success) throw new InvalidPetDataError()
+    return result.data
+  }
+  const result = historicalPetSchema.safeParse(value)
   if (!result.success) throw new InvalidPetDataError()
-  return result.data
+  const pet = result.data
+  const lifecycle =
+    pet.lifecycle.stage === 'baby' ||
+    pet.lifecycle.stage === 'child' ||
+    pet.lifecycle.stage === 'teen'
+      ? { ...pet.lifecycle, stage: growingStage(pet.lifecycle.days.length) }
+      : pet.lifecycle
+  return {
+    ...pet,
+    lifecycle,
+    life: syncInventory(
+      createLife(pet.updatedAt, pet.sleeping),
+      pet.friendship.points,
+    ),
+  }
 }

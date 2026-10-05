@@ -57,7 +57,7 @@ it('grows on ten distinct meaningful days, including gaps, independently of frie
     pet = careForPet(pet, { type: 'pet' }, now + day * 2 * dayLength).pet
   }
   expect(pet.lifecycle).toEqual({
-    stage: 'baby',
+    stage: 'teen',
     days: [20000, 20002, 20004, 20006, 20008, 20010, 20012, 20014, 20016].map(
       (day) => ({ ...neutralDay(day), cuddled: true }),
     ),
@@ -79,9 +79,29 @@ it.each([
   [{ type: 'play' }, { happiness: 89 }, 1],
   [{ type: 'pet' }, { happiness: 100 }, 1],
   [{ type: 'sleep' }, {}, 0],
-  [{ type: 'wake' }, { sleeping: true }, 0],
+  [
+    { type: 'wake' },
+    {
+      sleeping: true,
+      life: {
+        ...baby().life,
+        sleep: { ...baby().life.sleep, mode: 'manual' as const },
+      },
+    },
+    0,
+  ],
   [{ type: 'play' }, { energy: 9 }, 0],
-  [{ type: 'pet' }, { sleeping: true }, 0],
+  [
+    { type: 'pet' },
+    {
+      sleeping: true,
+      life: {
+        ...baby().life,
+        sleep: { ...baby().life.sleep, mode: 'manual' as const },
+      },
+    },
+    0,
+  ],
 ] satisfies [CareAction, object, number][])(
   'counts only useful accepted care %j',
   (action, meters, count) => {
@@ -103,7 +123,7 @@ it('does not duplicate credits after a clock reversal and revisit', () => {
       type: 'pet',
     }),
   ).toEqual({
-    stage: 'baby',
+    stage: 'child',
     days: [
       neutralDay(20000),
       { ...neutralDay(20001), cuddled: true },

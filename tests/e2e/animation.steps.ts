@@ -1,3 +1,4 @@
+import { ShellGamePage } from './pages/shell-game'
 import { createBdd } from 'playwright-bdd'
 import { expect, type Page } from '@playwright/test'
 const { Given, When, Then } = createBdd()
@@ -154,7 +155,7 @@ When('I watch a lively game with the ball', async ({ page }) => {
   await expect(
     page.getByRole('button', { name: 'Play', exact: true }),
   ).toBeEnabled()
-  await page.getByRole('button', { name: 'Play', exact: true }).click()
+  await new ShellGamePage(page).finish()
   await expect(page.getByRole('status')).toContainText('saved')
   await page.clock.fastForward(1200)
 })

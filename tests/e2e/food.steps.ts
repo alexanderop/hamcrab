@@ -50,7 +50,7 @@ Then(
     ).toHaveAttribute('aria-valuenow', '95')
     await expect(
       page.getByRole('progressbar', { name: 'Freude' }),
-    ).toHaveAttribute('aria-valuenow', '83')
+    ).toHaveAttribute('aria-valuenow', '86')
   },
 )
 

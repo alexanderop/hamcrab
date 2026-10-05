@@ -24,6 +24,8 @@ const props = defineProps<{
     stages: Record<Lifecycle['stage'], string>
     hatch: string
     egg: string
+    child: string
+    teen: string
     baby: string
     adult: string
     progress: string
@@ -71,7 +73,9 @@ function restoreFocus() {
       <button v-if="view.choices.length" @click="details?.showModal()">
         {{ text.choose }}
       </button>
-      <span v-if="view.stage === 'baby'">{{ text.days(view.careDays) }}</span>
+      <span v-if="view.stage !== 'egg' && view.stage !== 'adult'">{{
+        text.days(view.careDays)
+      }}</span>
       <button
         v-if="view.stage === 'egg'"
         :disabled="disabled"
@@ -90,14 +94,16 @@ function restoreFocus() {
     </div>
     <p class="lifecycle-description">{{ text[view.stage] }}</p>
     <progress
-      v-if="view.stage === 'baby'"
+      v-if="view.stage !== 'egg' && view.stage !== 'adult'"
       :aria-label="text.progress"
       :value="view.careDays"
       max="10"
     />
-    <span v-if="view.stage === 'baby'" class="lifecycle-schedule">{{
-      text.schedule
-    }}</span>
+    <span
+      v-if="view.stage !== 'egg' && view.stage !== 'adult'"
+      class="lifecycle-schedule"
+      >{{ text.schedule }}</span
+    >
     <dialog
       @close="restoreFocus"
       ref="details"
@@ -106,8 +112,13 @@ function restoreFocus() {
     >
       <h2>{{ text.title }}</h2>
       <p>{{ text[view.stage] }}</p>
-      <p v-if="view.stage === 'baby'">{{ text.shaping }}</p>
-      <ul v-if="view.stage === 'baby'" class="variant-guide">
+      <p v-if="view.stage !== 'egg' && view.stage !== 'adult'">
+        {{ text.shaping }}
+      </p>
+      <ul
+        v-if="view.stage !== 'egg' && view.stage !== 'adult'"
+        class="variant-guide"
+      >
         <li v-for="(score, variant) in view.scores" :key="variant">
           <strong>{{ text.variants[variant] }}</strong
           >: {{ text.traits[variant] }} <span>{{ score }} / 10</span>
@@ -139,7 +150,9 @@ function restoreFocus() {
           <span>{{ text.traits[variant] }}</span>
         </button>
       </div>
-      <p v-if="view.stage === 'baby'">{{ text.schedule }}</p>
+      <p v-if="view.stage !== 'egg' && view.stage !== 'adult'">
+        {{ text.schedule }}
+      </p>
       <button ref="close" @click="details?.close()">{{ text.close }}</button>
     </dialog>
   </section>

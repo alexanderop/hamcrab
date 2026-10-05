@@ -49,7 +49,7 @@ it('serializes care and rename across independent IndexedDB connections', async 
   expect(await second.load()).toMatchObject({
     name: 'Milo',
     fullness: 95,
-    happiness: 98,
+    happiness: 100,
     energy: 62,
     careCount: 2,
   })
@@ -68,13 +68,24 @@ it('reads legacy version-1 saves and round-trips a renamed sleeping companion', 
     updatedAt: now,
   }
   await raw.table('pets').put(legacy, 'pinchy')
-  expect(await first.load()).toEqual({ ...createPet(now), sleeping: true })
+  expect(await first.load()).toEqual({
+    ...createPet(now),
+    sleeping: true,
+    life: {
+      ...createPet(now).life,
+      sleep: { ...createPet(now).life.sleep, mode: 'manual' },
+    },
+  })
   expect(await raw.table('pets').get('pinchy')).toEqual(legacy)
   await first.rename('Schlummer')
   expect(await second.load()).toEqual({
     ...createPet(now),
     name: 'Schlummer',
     sleeping: true,
+    life: {
+      ...createPet(now).life,
+      sleep: { ...createPet(now).life.sleep, mode: 'manual' },
+    },
   })
 })
 it.each([
@@ -187,10 +198,11 @@ it('awards one wish bonus when two homes play concurrently', async () => {
 
 it('migrates a friendship-bearing legacy row to adult without rewriting it', async () => {
   const { first, raw } = database()
-  const { lifecycle: _, ...legacy } = createPet(now)
+  const { lifecycle: _, life: __, ...legacy } = createPet(now)
   await raw.table('pets').put(legacy, 'pinchy')
   expect(await first.load()).toEqual({
     ...legacy,
+    life: createPet(now).life,
     lifecycle: pendingAdult(),
   })
   expect(await raw.table('pets').get('pinchy')).toEqual(legacy)
@@ -237,8 +249,9 @@ it.each([
 
 it('preserves an old baby journal and offers every legacy adult a permanent choice', async () => {
   const { first, second, raw } = database()
+  const { life: _, ...historicalPet } = createPet(now)
   const legacy = {
-    ...createPet(now),
+    ...historicalPet,
     lifecycle: { stage: 'baby', careDays: [20833] },
   }
   await raw.table('pets').put(legacy, 'pinchy')
@@ -248,7 +261,7 @@ it('preserves an old baby journal and offers every legacy adult a permanent choi
   })
   expect(await raw.table('pets').get('pinchy')).toEqual(legacy)
   const adult = {
-    ...createPet(now),
+    ...historicalPet,
     name: 'Milo',
     careCount: 22,
     lifecycle: { stage: 'adult' },
@@ -318,3 +331,90 @@ it.each([
     expect(await raw.table('pets').get('pinchy')).toEqual(corrupt)
   },
 )
+
+it('serializes shell rounds and awards exactly once across connections and reloads', async () => {
+  const { first, second } = database()
+  await first.hatch()
+  const started = await first.life({ type: 'startGame' })
+  const id = started.pet.life.game!.id
+  expect((await second.life({ type: 'startGame' })).pet.life.game!.id).toBe(id)
+  for (let round = 0; round < 5; round++) {
+    const target = (await second.load()).life.game!.target
+    const results = await Promise.all([
+      first.life({ type: 'guessShell', gameId: id, round, shell: target }),
+      second.life({ type: 'guessShell', gameId: id, round, shell: target }),
+    ])
+    expect(results.filter((result) => result.accepted)).toHaveLength(1)
+    expect(results.find((result) => !result.accepted)?.message).toBe(
+      'staleGame',
+    )
+  }
+  expect(await second.load()).toMatchObject({
+    careCount: 1,
+    energy: 62,
+    happiness: 98,
+    life: { game: null, lastGame: { id, score: 5 } },
+  })
+  expect(
+    (await first.life({ type: 'guessShell', gameId: id, round: 4, shell: 0 }))
+      .accepted,
+  ).toBe(false)
+  expect((await second.load()).careCount).toBe(1)
+})
+it('archives one adult under competing generation requests and preserves the album', async () => {
+  const { first, second, raw } = database()
+  const pet = createPet(now)
+  await raw.table('pets').put(
+    {
+      ...pet,
+      name: 'Milo',
+      createdAt: now - 3 * 86_400_000,
+      lifecycle: {
+        stage: 'adult',
+        identity: { status: 'chosen', variant: 'gourmet' },
+      },
+      life: { ...pet.life, visits: [20831, 20832, 20833] },
+    },
+    'pinchy',
+  )
+  const results = await Promise.all([
+    first.life({ type: 'nextGeneration', expectedGeneration: 1 }),
+    second.life({ type: 'nextGeneration', expectedGeneration: 1 }),
+  ])
+  expect(results.filter((result) => result.accepted)).toHaveLength(1)
+  expect(await second.load()).toMatchObject({
+    lifecycle: { stage: 'egg' },
+    life: {
+      generation: 2,
+      visits: [],
+      album: [
+        {
+          generation: 1,
+          name: 'Milo',
+          variant: 'gourmet',
+          bornAt: now - 3 * 86_400_000,
+          movedOutAt: now,
+        },
+      ],
+    },
+  })
+})
+it('rejects malformed life without touching bytes and upgrades valid legacy only on accepted commands', async () => {
+  const { first, raw } = database()
+  const { life: _, ...legacy } = createPet(now)
+  await raw.table('pets').put(legacy, 'pinchy')
+  expect((await first.load()).life.generation).toBe(1)
+  expect(await raw.table('pets').get('pinchy')).toEqual(legacy)
+  await first.life({ type: 'equip', slot: 'toy', item: 'shell' })
+  expect((await raw.table('pets').get('pinchy')).life.equipment.toy).toBe(
+    'shell',
+  )
+  for (const life of [null, {}, { ...createPet(now).life, gameSequence: -1 }]) {
+    const corrupt = { ...createPet(now), life }
+    await raw.table('pets').put(corrupt, 'pinchy')
+    await expect(first.life({ type: 'clean' })).rejects.toBeInstanceOf(
+      InvalidPetDataError,
+    )
+    expect(await raw.table('pets').get('pinchy')).toEqual(corrupt)
+  }
+})

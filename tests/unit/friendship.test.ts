@@ -1,3 +1,4 @@
+import { createLife, syncInventory } from '../../src/features/pet/domain/life'
 import { pendingAdult } from '../../src/features/pet/domain/lifecycle'
 import { describe, expect, it } from 'vitest'
 import {
@@ -146,7 +147,11 @@ describe('friendship', () => {
     )
     expect(
       careForPet(
-        { ...pet, sleeping: true },
+        {
+          ...pet,
+          sleeping: true,
+          life: { ...pet.life, sleep: { ...pet.life.sleep, mode: 'manual' } },
+        },
         { type: 'feed', food: 'doener' },
         noon,
       ).pet.friendship.points,
@@ -183,6 +188,7 @@ describe('saved friendship boundary', () => {
   ])('preserves legacy %i gestures as %i points', (careCount, points) => {
     expect(parseSavedPet({ ...legacy, careCount })).toEqual({
       ...legacy,
+      life: syncInventory(createLife(legacy.updatedAt), points),
       lifecycle: pendingAdult(),
       careCount,
       friendship: {

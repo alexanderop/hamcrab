@@ -16,7 +16,7 @@ it('creates a new companion once and restores the latest saved state', async () 
   await service.care({ type: 'feed', food: 'doener' })
   expect(
     await createPetService(repository, { now: () => now }).load(),
-  ).toMatchObject({ fullness: 95, happiness: 83, careCount: 1 })
+  ).toMatchObject({ fullness: 95, happiness: 86, careCount: 1 })
 })
 it('renames a sleeping companion without changing its saved care history', async () => {
   let time = now

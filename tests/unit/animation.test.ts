@@ -1,4 +1,7 @@
 import { describe, expect, it } from 'vitest'
+import { createCreature } from '../../src/features/habitat/three/creature'
+import { disposeObject } from '../../src/features/habitat/three/disposeObject'
+import { visibleWaste } from '../../src/features/habitat/domain/lifePresentation'
 import {
   acceptCue,
   initialAnimation,
@@ -274,4 +277,28 @@ describe('adult signature motions', () => {
       }
     },
   )
+})
+
+describe('growing habitat', () => {
+  it('changes head and claw proportions at each stage without accumulating scale', () => {
+    const creature = createCreature()
+    for (const [stage, head, claws] of [
+      ['baby', 1.15, 0.65],
+      ['child', 1.1, 0.76],
+      ['teen', 1.04, 0.88],
+      ['adult', 1, 1],
+      ['baby', 1.15, 0.65],
+    ] as const) {
+      creature.setLifeStage(stage)
+      expect(creature.head.scale.x).toBe(head)
+      expect(creature.claws.map((claw) => claw.scale.x)).toEqual([claws, claws])
+    }
+    disposeObject(creature.root)
+  })
+
+  it('bounds visible mess regardless of stale or malformed display input', () => {
+    expect([0, 1, 2, 3, 50, -1, 2.8, NaN, Infinity].map(visibleWaste)).toEqual([
+      0, 1, 2, 3, 3, 0, 2, 0, 0,
+    ])
+  })
 })

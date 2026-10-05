@@ -7,7 +7,6 @@ import {
   Utensils,
   Gamepad2,
   BatteryMedium,
-  Rotate3d,
   Check,
   WifiOff,
   Settings,
@@ -20,6 +19,11 @@ import {
 } from '../features/habitat'
 import {
   usePetSession,
+  lifeView,
+  lifeText,
+  LifePanel,
+  ShellGame,
+  type LifeCommand,
   lifecycleView,
   friendshipView,
   FriendshipPanel,
@@ -50,6 +54,8 @@ const {
   message,
   saved,
   care,
+  life,
+  lifeMessage,
   retry,
   rename,
   hatch,
@@ -58,6 +64,17 @@ const {
 const text = computed(() =>
   messages[preferences.value.language](pet.value.name),
 )
+const lifeState = computed(() => lifeView(pet.value))
+const lifeCopy = computed(() =>
+  lifeText(preferences.value.language, pet.value.name),
+)
+const shellGame = ref<InstanceType<typeof ShellGame>>()
+async function lifeAction(command: LifeCommand) {
+  const accepted = await life(command)
+  if (accepted && lifeMessage.value === 'gameFinished')
+    reaction.value = { id: ++reactionId, kind: 'play', celebrate: true }
+  return accepted
+}
 const settingsPanel = ref<InstanceType<typeof SettingsPanel>>()
 watchEffect(() => {
   document.documentElement.lang = preferences.value.language
@@ -106,9 +123,14 @@ const sceneDescription = computed(() =>
         ]
       : []),
     ...(pet.value.sleeping ? [text.value.sleepingScene] : []),
-    ...friendship.value.unlocked.map(
-      (reward) => text.value.friendship.descriptions[reward],
-    ),
+    lifeCopy.value.attention[lifeState.value.attention],
+    ...[lifeState.value.outfit, lifeState.value.toy, lifeState.value.decoration]
+      .filter((item) => item !== 'none')
+      .map((item) =>
+        item === 'ribbon' || item === 'ball' || item === 'flower'
+          ? text.value.friendship.descriptions[item]
+          : lifeCopy.value.items[item],
+      ),
   ].join(' '),
 )
 async function careWithCelebration(action: CareAction) {
@@ -276,9 +298,11 @@ async function feed(food: FoodId) {
                 :adult-variant="lifecycle.adultVariant"
                 :palette="palettes[preferences.costumeColor]"
                 :description="sceneDescription"
-                :ribbon="ready && friendship.unlocked.includes('ribbon')"
-                :ball="ready && friendship.unlocked.includes('ball')"
-                :flower="ready && friendship.unlocked.includes('flower')"
+                :outfit="lifeState.outfit"
+                :toy="lifeState.toy"
+                :decoration="lifeState.decoration"
+                :waste="lifeState.waste"
+                :unwell="lifeState.unwell"
                 :fallback-title="text.fallback"
                 :fallback-description="text.no3d"
                 :sleeping="pet.sleeping"
@@ -293,8 +317,16 @@ async function feed(food: FoodId) {
               }}</span>
             </div>
             <div class="screen-tools">
-              <span><Rotate3d :size="13" /> {{ text.rotate }}</span
-              ><button
+              <LifePanel
+                :view="lifeState"
+                :text="lifeCopy"
+                :disabled="!ready || busy || !!error"
+                :notice="error ? text.errors[error] : null"
+                :retry-label="text.retry"
+                :feedback="lifeMessage"
+                :act="lifeAction"
+                @retry="retry"
+              /><button
                 :disabled="
                   !ready ||
                   busy ||
@@ -309,7 +341,12 @@ async function feed(food: FoodId) {
             </div>
             <p class="message-strip" aria-live="polite">
               <span aria-hidden="true">▸</span>
-              <span>{{ text.reactions[message] }}</span>
+              <span>{{
+                lifeState.attention !== 'content' &&
+                lifeState.attention !== 'sleeping'
+                  ? lifeCopy.attention[lifeState.attention]
+                  : text.reactions[message]
+              }}</span>
             </p>
           </div>
           <div class="bezel-bottom">
@@ -359,7 +396,7 @@ async function feed(food: FoodId) {
                 pet.sleeping ||
                 pet.energy < 10
               "
-              @click="act('play')"
+              @click="shellGame?.open()"
             >
               <Gamepad2 :size="28" /></button
             ><span>{{ text.play }}</span
@@ -406,6 +443,18 @@ async function feed(food: FoodId) {
           :fallback="text.no3d"
         />
       </FoodMenu>
+      <ShellGame
+        ref="shellGame"
+        :view="lifeState"
+        :text="lifeCopy"
+        :german="preferences.language === 'de'"
+        :disabled="!ready || busy || !!error"
+        :notice="error ? text.errors[error] : null"
+        :retry-label="text.retry"
+        :feedback="lifeMessage"
+        :act="lifeAction"
+        @retry="retry"
+      />
       <SettingsPanel
         ref="settingsPanel"
         :preferences="preferences"

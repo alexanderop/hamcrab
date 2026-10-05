@@ -1,8 +1,10 @@
+import { ShellGamePage } from './pages/shell-game'
 import { createBdd } from 'playwright-bdd'
 import { FoodMenuPage } from './pages/food-menu'
 import { expect, type Page } from '@playwright/test'
 const { Given, When, Then } = createBdd()
 async function visit(page: Page) {
+  await page.clock.setFixedTime(new Date('2026-10-05T12:00:00Z'))
   await page.goto('./', { waitUntil: 'domcontentloaded' })
   const hatch = page.getByRole('button', { name: 'Help hatch', exact: true })
   await expect(page.getByRole('status')).toContainText('Your progress is saved')
@@ -68,7 +70,7 @@ When('I feed Pinchy', async ({ page }) => {
   ).toBeVisible()
 })
 When('I play with Pinchy', async ({ page }) => {
-  await page.getByRole('button', { name: 'Play' }).click()
+  await new ShellGamePage(page).finish()
   await expect(
     page.getByText('Hooray! Playing makes Pinchy happy.', {
       exact: true,
@@ -115,7 +117,9 @@ Then('active care is available', async ({ page }) => {
   await expect(page.getByRole('button', { name: 'Play' })).toBeEnabled()
 })
 When('two hours pass', async ({ page }) => {
-  await page.clock.install()
+  await page.clock.install({
+    time: new Date(await page.evaluate(() => Date.now())),
+  })
   await page.clock.fastForward(2 * 60 * 60 * 1000)
 })
 Given('my home is available offline', async ({ page }) => {

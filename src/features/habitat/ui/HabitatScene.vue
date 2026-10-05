@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import * as THREE from 'three'
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
 import { createSnack } from '../three/snacks'
@@ -10,7 +10,15 @@ import { createRewards } from '../three/rewards'
 import { createEgg } from '../three/egg'
 import { createCreature } from '../three/creature'
 import { createSleepNest } from '../three/sleepNest'
-import type { CostumePalette, CareCue, LifeStage } from '../scene-types'
+import type {
+  CostumePalette,
+  CareCue,
+  LifeStage,
+  Outfit,
+  Toy,
+  Decoration,
+} from '../scene-types'
+import { stageProportions, visibleWaste } from '../domain/lifePresentation'
 import {
   initialAnimation,
   updateEnvironment,
@@ -28,9 +36,14 @@ import {
 const props = defineProps<{
   adultVariant?: AdultVariant | null
   lifeStage: LifeStage
-  ribbon: boolean
-  ball: boolean
-  flower: boolean
+  ribbon?: boolean
+  ball?: boolean
+  flower?: boolean
+  outfit?: Outfit
+  toy?: Toy
+  decoration?: Decoration
+  waste?: number
+  unwell?: boolean
   palette: CostumePalette
   description: string
   fallbackTitle: string
@@ -40,6 +53,14 @@ const props = defineProps<{
   loaded: boolean
   available: boolean
 }>()
+const outfit = computed(
+  () => props.outfit ?? (props.ribbon ? 'ribbon' : 'none'),
+)
+const toy = computed(() => props.toy ?? (props.ball ? 'ball' : 'none'))
+const decoration = computed(
+  () => props.decoration ?? (props.flower ? 'flower' : 'none'),
+)
+const wasteCount = computed(() => visibleWaste(props.waste ?? 0))
 const emit = defineEmits<{ ready: []; pet: [] }>()
 const host = ref<HTMLDivElement>()
 const ballPlaying = ref(false)
@@ -112,8 +133,8 @@ onMounted(() => {
       (stage, previous) => {
         egg.visible = stage === 'egg'
         morphology.visible = stage !== 'egg'
-        morphology.scale.setScalar(stage === 'baby' ? 0.72 : 1)
-        creature.setLifeStage(stage === 'baby' ? 'baby' : 'adult')
+        morphology.scale.setScalar(stageProportions[stage].body)
+        creature.setLifeStage(stage)
         transitionPending = previous !== undefined && previous !== stage
         invalidate()
       },
@@ -130,22 +151,35 @@ onMounted(() => {
     creature.setPalette(props.palette)
     const rewards = createRewards()
     const ballPosition = new THREE.Vector3()
-    creature.head.add(rewards.ribbon)
-    scene.add(rewards.ball, rewards.flower)
+    creature.head.add(rewards.ribbon, rewards.cap)
+    scene.add(
+      rewards.ball,
+      rewards.flower,
+      rewards.shell,
+      rewards.pebble,
+      ...rewards.waste,
+    )
     const stopRewardWatch = watch(
       () => [
-        props.ribbon,
-        props.ball,
-        props.flower,
+        outfit.value,
+        toy.value,
+        decoration.value,
+        wasteCount.value,
+        props.unwell,
         props.lifeStage,
         props.adultVariant,
       ],
       () => {
-        rewards.ribbon.visible = props.ribbon && props.lifeStage !== 'egg'
-        rewards.ball.visible =
-          (props.ball || props.adultVariant === 'whirlwind') &&
-          props.lifeStage !== 'egg'
-        rewards.flower.visible = props.flower && props.lifeStage !== 'egg'
+        const hatched = props.lifeStage !== 'egg'
+        rewards.ribbon.visible = outfit.value === 'ribbon' && hatched
+        rewards.cap.visible = outfit.value === 'cap' && hatched
+        rewards.ball.visible = toy.value === 'ball' && hatched
+        rewards.shell.visible = toy.value === 'shell' && hatched
+        rewards.flower.visible = decoration.value === 'flower' && hatched
+        rewards.pebble.visible = decoration.value === 'pebble' && hatched
+        rewards.waste.forEach((pile, index) => {
+          pile.visible = index < wasteCount.value && hatched
+        })
         invalidate()
       },
       { immediate: true },
@@ -275,7 +309,12 @@ onMounted(() => {
       return raycaster.intersectObject(creature.root, true).some((hit) => {
         let object: THREE.Object3D | null = hit.object
         while (object) {
-          if (object === snackHolder || object === rewards.ribbon) return false
+          if (
+            object === snackHolder ||
+            object === rewards.ribbon ||
+            object === rewards.cap
+          )
+            return false
           object = object.parent
         }
         return true
@@ -337,7 +376,7 @@ onMounted(() => {
       const reveal = reducedMotion.matches
         ? 1
         : THREE.MathUtils.smoothstep(time - transitionStart, 0, 0.8)
-      const size = props.lifeStage === 'baby' ? 0.72 : 1
+      const size = stageProportions[props.lifeStage].body
       morphology.scale.setScalar(size * (0.85 + reveal * 0.15))
       morphology.position.y = Math.sin(reveal * Math.PI) * 0.2
       egg.rotation.z = reducedMotion.matches ? 0 : Math.sin(time * 1.8) * 0.035
@@ -402,15 +441,18 @@ onMounted(() => {
       const still = reducedMotion.matches
       const play = reacting && sampled.motion === 'play'
       ballPlaying.value =
-        play && (props.ball || props.adultVariant === 'whirlwind')
+        play && (toy.value === 'ball' || props.adultVariant === 'whirlwind')
+      rewards.ball.visible =
+        props.lifeStage !== 'egg' && (toy.value === 'ball' || ballPlaying.value)
       rewards.ball.position.x =
-        0.82 + (props.ball ? sampled.ballTravel * 0.55 : 0)
-      rewards.ball.position.y = 0.2 + (props.ball ? sampled.ballLift : 0)
+        0.82 + (toy.value === 'ball' ? sampled.ballTravel * 0.55 : 0)
+      rewards.ball.position.y =
+        0.2 + (toy.value === 'ball' ? sampled.ballLift : 0)
       rewards.ball.position.z = 0.85
 
       rewards.ball.rotation.z = sampled.juggle
         ? time * 7
-        : props.ball
+        : toy.value === 'ball'
           ? -sampled.ballTravel * 5
           : 0
       const feed = reacting && sampled.motion === 'feed'
@@ -420,6 +462,7 @@ onMounted(() => {
         play && age > 0.2
           ? Math.max(0, Math.sin(((age - 0.2) / 0.65) * Math.PI)) * energy
           : 0
+      const unwell = props.unwell && !props.sleeping ? 1 : 0
       const breathe = idle * (props.sleeping ? 0.018 : 0.004)
       creature.root.position.x = sampled.x
       creature.root.position.y =
@@ -429,7 +472,7 @@ onMounted(() => {
         1 - anticipation * 0.06 + jump * 0.045 + breathe - rest * 0.12,
         1 + rest * 0.03,
       )
-      creature.root.rotation.z = sampled.roll - rest * 0.1
+      creature.root.rotation.z = sampled.roll - rest * 0.1 - unwell * 0.035
       if (sampled.juggle) {
         creature.root.updateWorldMatrix(true, false)
         rewards.ball.position.lerp(
@@ -460,11 +503,12 @@ onMounted(() => {
         -0.06 + curious * 0.07 + sampled.headRoll + rest * 0.24
       creature.head.rotation.y = -0.025 + headTurn * 0.1 + sampled.headTurn
       creature.head.rotation.x =
-        rest * 0.23 + -curious * 0.025 + sampled.headPitch
+        rest * 0.23 + unwell * 0.12 + -curious * 0.025 + sampled.headPitch
       const blinkPhase = time % 6.1
       const blink = Math.max(
         rest,
         sampled.eyesClosed,
+        unwell * 0.4,
         still ? 0 : Math.max(0, 1 - Math.abs(blinkPhase - 5.78) / 0.13),
       )
       creature.lids.forEach((lid) => {
@@ -480,7 +524,8 @@ onMounted(() => {
       })
       creature.brows.forEach((brow, index) => {
         brow.rotation.z =
-          (index === 0 ? -1 : 1) * (curious * 0.12 + (pet ? energy * 0.15 : 0))
+          (index === 0 ? -1 : 1) *
+          (curious * 0.12 + (pet ? energy * 0.15 : 0) - unwell * 0.2)
         brow.position.y = 0.345 + curious * (index === 0 ? 0.03 : 0.015)
       })
       creature.paws.forEach((paw, index) => {
@@ -579,10 +624,15 @@ onBeforeUnmount(() => cleanup?.())
     :data-renderer="status"
     :data-snack="activeSnack"
     :data-motion="motion"
-    :data-ribbon="ribbon"
-    :data-ball="ball"
+    :data-ribbon="outfit === 'ribbon'"
+    :data-outfit="outfit"
+    :data-toy="toy"
+    :data-decoration="decoration"
+    :data-waste="wasteCount"
+    :data-unwell="!!unwell"
+    :data-ball="toy === 'ball'"
     :data-ball-playing="ballPlaying"
-    :data-flower="flower"
+    :data-flower="decoration === 'flower'"
     role="img"
     :aria-label="description"
     tabindex="0"

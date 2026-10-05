@@ -18,7 +18,7 @@ const now = 1_800_000_000_000
 describe('care rules', () => {
   it.each([
     ['franzbroetchen', 85, 78, 72],
-    ['doener', 95, 83, 72],
+    ['doener', 95, 86, 72],
     ['augustiner', 70, 88, 67],
   ] as const)(
     '%s changes the correct needs',
@@ -46,7 +46,14 @@ describe('care rules', () => {
     { type: 'pet' },
     { type: 'feed', food: 'doener' },
   ])('rejects active care during sleep: %j', (action) => {
-    const pet = { ...createPet(now), sleeping: true }
+    const pet = {
+      ...createPet(now),
+      sleeping: true,
+      life: {
+        ...createPet(now).life,
+        sleep: { ...createPet(now).life.sleep, mode: 'manual' as const },
+      },
+    }
     expect(careForPet(pet, action, now)).toEqual({
       pet,
       accepted: false,

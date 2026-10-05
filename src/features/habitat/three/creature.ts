@@ -1,11 +1,12 @@
 import * as THREE from 'three'
 
 import type { AdultVariant } from '../domain/scene-types'
+import { stageProportions, type LifeStage } from '../domain/lifePresentation'
 import type { CostumePalette } from '../scene-types'
 
 export interface CreatureRig {
   setAdultVariant: (variant: AdultVariant | null) => void
-  setLifeStage: (stage: 'baby' | 'adult') => void
+  setLifeStage: (stage: LifeStage) => void
   setPalette: (palette: CostumePalette) => void
   root: THREE.Group
   head: THREE.Group
@@ -448,8 +449,9 @@ export function createCreature(): CreatureRig {
       })
     },
     setLifeStage(stage) {
-      head.scale.setScalar(stage === 'baby' ? 1.15 : 1)
-      claws.forEach((claw) => claw.scale.setScalar(stage === 'baby' ? 0.65 : 1))
+      const proportions = stageProportions[stage]
+      head.scale.setScalar(proportions.head)
+      claws.forEach((claw) => claw.scale.setScalar(proportions.claws))
     },
     setPalette(palette) {
       materials.shell.color.set(palette.base)

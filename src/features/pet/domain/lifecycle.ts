@@ -18,7 +18,10 @@ export type AdultIdentity =
   | Readonly<{ status: 'pending'; options: VariantChoices }>
 export type Lifecycle =
   | Readonly<{ stage: 'egg' }>
-  | Readonly<{ stage: 'baby'; days: readonly DailyExperience[] }>
+  | Readonly<{
+      stage: 'baby' | 'child' | 'teen'
+      days: readonly DailyExperience[]
+    }>
   | Readonly<{ stage: 'adult'; identity: AdultIdentity }>
 export const requiredCareDays = 10
 export const dayLength = 86_400_000
@@ -52,7 +55,7 @@ export function recordCare(
   day: number,
   action: { type: 'feed'; food: FoodId } | { type: 'play' | 'pet' },
 ): Lifecycle {
-  if (lifecycle.stage !== 'baby') return lifecycle
+  if (lifecycle.stage === 'egg' || lifecycle.stage === 'adult') return lifecycle
   const row =
     lifecycle.days.find((entry) => entry.day === day) ?? neutralDay(day)
   const updated: DailyExperience = {
@@ -68,7 +71,8 @@ export function recordCare(
     ...lifecycle.days.filter((entry) => entry.day !== day),
     updated,
   ].sort((a, b) => a.day - b.day)
-  if (days.length < requiredCareDays) return { stage: 'baby', days }
+  if (days.length < requiredCareDays)
+    return { stage: growingStage(days.length), days }
   const scores = experienceScores(days)
   const maximum = Math.max(...Object.values(scores))
   const options = adultVariants.filter((variant) => scores[variant] === maximum)
@@ -94,7 +98,9 @@ export function chooseAdultVariant(
 }
 export function lifecycleView(lifecycle: Lifecycle) {
   const careDays =
-    lifecycle.stage === 'baby'
+    lifecycle.stage === 'baby' ||
+    lifecycle.stage === 'child' ||
+    lifecycle.stage === 'teen'
       ? lifecycle.days.length
       : lifecycle.stage === 'adult'
         ? requiredCareDays
@@ -111,6 +117,16 @@ export function lifecycleView(lifecycle: Lifecycle) {
       lifecycle.stage === 'adult' && lifecycle.identity.status === 'pending'
         ? lifecycle.identity.options
         : [],
-    scores: experienceScores(lifecycle.stage === 'baby' ? lifecycle.days : []),
+    scores: experienceScores(
+      lifecycle.stage === 'baby' ||
+        lifecycle.stage === 'child' ||
+        lifecycle.stage === 'teen'
+        ? lifecycle.days
+        : [],
+    ),
   }
+}
+
+export function growingStage(days: number): 'baby' | 'child' | 'teen' {
+  return days >= 6 ? 'teen' : days >= 3 ? 'child' : 'baby'
 }

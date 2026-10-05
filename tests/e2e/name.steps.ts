@@ -1,3 +1,4 @@
+import { ShellGamePage } from './pages/shell-game'
 import { createBdd } from 'playwright-bdd'
 import { expect } from '@playwright/test'
 import { PetNamePage } from './pages/pet-name'
@@ -56,7 +57,7 @@ When(
     await settings.input.fill('Kalle')
     await Promise.all([
       settings.save.click(),
-      second.getByRole('button', { name: 'Play', exact: true }).click(),
+      new ShellGamePage(second).finish(),
     ])
     await expect(settings.dialog.getByRole('status')).toHaveText('Name saved.')
     await expect(second.locator('.message-strip')).toContainText(
