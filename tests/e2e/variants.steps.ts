@@ -165,6 +165,9 @@ Then('my adult form is still {string}', async ({ page }, form: string) => {
 When('two homes choose different adult forms', async ({ page, context }) => {
   const other = await context.newPage()
   try {
+    await other.clock.setFixedTime(
+      new Date(await page.evaluate(() => Date.now())),
+    )
     await other.goto(page.url())
     await other
       .getByRole('button', { name: 'Choose a form', exact: true })

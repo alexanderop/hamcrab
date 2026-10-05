@@ -56,6 +56,9 @@ Then(
 
 When('Pinchy falls asleep in another home', async ({ page, context }) => {
   const second = await context.newPage()
+  await second.clock.setFixedTime(
+    new Date(await page.evaluate(() => Date.now())),
+  )
   await second.goto('./')
   await second.getByRole('button', { name: 'Sleep', exact: true }).click()
   await expect(second.getByRole('button', { name: 'Wake up' })).toBeEnabled()

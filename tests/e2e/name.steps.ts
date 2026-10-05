@@ -48,6 +48,9 @@ When(
   'I rename and play in two homes at the same time',
   async ({ page, context }) => {
     const second = await context.newPage()
+    await second.clock.setFixedTime(
+      new Date(await page.evaluate(() => Date.now())),
+    )
     await second.goto('./')
     await expect(
       second.getByRole('button', { name: 'Play', exact: true }),
